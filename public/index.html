@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>PharmaGuard Command Center</title>
+
+  <link
+    rel="stylesheet"
+    href="/styles.css"
+  >
+</head>
+
+<body>
+
+  <!-- ==================================================
+       APP SHELL
+  =================================================== -->
+
+  <div class="app-shell">
+
+    <!-- ==================================================
+         SIDEBAR
+    =================================================== -->
+
+    <aside class="sidebar">
+
+      <div class="brand">
+
+        <div class="brand-icon">
+          PG
+        </div>
+
+        <div>
+          <div class="brand-name">
+            PharmaGuard
+          </div>
+
+          <div class="brand-subtitle">
+            Supply Chain Resilience
+          </div>
+        </div>
+
+      </div>
+
+
+      <nav class="navigation">
+
+        <button
+          type="button"
+          class="nav-item active"
+        >
+          <span>◉</span>
+          Command Center
+        </button>
+
+        <button
+          type="button"
+          class="nav-item"
+        >
+          <span>◈</span>
+          Shipments
+        </button>
+
+        <button
+          type="button"
+          class="nav-item"
+        >
+          <span>▣</span>
+          Inventory
+        </button>
+
+        <button
+          type="button"
+          class="nav-item"
+        >
+          <span>◎</span>
+          Recovery History
+        </button>
+
+      </nav>
+
+
+      <div class="system-status">
+
+        <div class="status-dot"></div>
+
+        <div>
+          <strong>System Operational</strong>
+          <span>All agents online</span>
+        </div>
+
+      </div>
+
+    </aside>
+
+
+    <!-- ==================================================
+         MAIN CONTENT
+    =================================================== -->
+
+    <main class="main-content">
+
+      <!-- ==================================================
+           HEADER
+      =================================================== -->
+
+      <header class="topbar">
+
+        <div>
+
+          <div class="eyebrow">
+            AI-POWERED SUPPLY CHAIN CONTROL
+          </div>
+
+          <h1>
+            Command Center
+          </h1>
+
+          <p>
+            Detect. Analyze. Decide. Recover.
+          </p>
+
+        </div>
+
+
+        <div class="topbar-right">
+
+          <div class="agent-status">
+
+            <span class="live-dot"></span>
+
+            <span>
+              7 Agents Active
+            </span>
+
+          </div>
+
+
+          <div class="manager">
+
+            <div class="manager-avatar">
+              SM
+            </div>
+
+            <div>
+
+              <strong>
+                Supply Chain Manager
+              </strong>
+
+              <span>
+                Human decision-maker
+              </span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </header>
+
+
+      <!-- ==================================================
+           OPERATIONAL INTELLIGENCE
+      =================================================== -->
+
+      <section
+        id="intelligencePanel"
+        class="intelligence-panel"
+      >
+
+        <div class="intelligence-heading">
+
+          <div>
+
+            <div class="section-kicker">
+              OPERATIONAL INTELLIGENCE
+            </div>
+
+            <h2>
+              PharmaGuard System Overview
+            </h2>
+
+          </div>
+
+          <div class="live-indicator">
+
+            <span class="live-dot"></span>
+
+            LIVE
+
+          </div>
+
+        </div>
+
+
+        <div class="intelligence-grid">
+
+          <!-- AGENTS -->
+
+          <div class="intelligence-card">
+
+            <div class="intelligence-icon">
+              AI
+            </div>
+
+            <div>
+
+              <span>
+                ACTIVE AGENTS
+              </span>
+
+              <strong id="activeAgentsMetric">
+                7
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          <!-- SHIPMENTS -->
+
+          <div class="intelligence-card">
+
+            <div class="intelligence-icon">
+              SH
+            </div>
+
+            <div>
+
+              <span>
+                AFFECTED SHIPMENTS
+              </span>
+
+              <strong id="affectedShipmentsMetric">
+                —
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          <!-- SEVERITY -->
+
+          <div class="intelligence-card">
+
+            <div class="intelligence-icon severity-icon">
+              !
+            </div>
+
+            <div>
+
+              <span>
+                DISRUPTION SEVERITY
+              </span>
+
+              <strong id="severityMetric">
+                —
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          <!-- PLANS -->
+
+          <div class="intelligence-card">
+
+            <div class="intelligence-icon">
+              RP
+            </div>
+
+            <div>
+
+              <span>
+                RECOVERY OPTIONS
+              </span>
+
+              <strong id="recoveryPlansMetric">
+                —
+              </strong>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           DISRUPTION INPUT
+      =================================================== -->
+
+      <section class="control-card">
+
+        <div class="section-heading">
+
+          <div>
+
+            <div class="section-kicker">
+              STEP 01
+            </div>
+
+            <h2>
+              Report Supply Chain Disruption
+            </h2>
+
+            <p>
+              Describe an operational disruption and let
+              PharmaGuard analyze its impact.
+            </p>
+
+          </div>
+
+          <div class="agent-badge">
+            DISRUPTION AGENT
+          </div>
+
+        </div>
+
+
+        <div class="input-row">
+
+          <input
+            id="disruptionInput"
+            type="text"
+            value="Ambala distribution hub is closed due to flooding"
+            placeholder="Describe the disruption..."
+          >
+
+
+          <button
+            id="analyzeButton"
+            type="button"
+            class="primary-button"
+            onclick="analyzeDisruption()"
+          >
+            Analyze Disruption
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           AGENT PIPELINE
+      =================================================== -->
+
+      <section
+        id="agentPipeline"
+        class="agent-pipeline"
+      >
+
+        <div class="pipeline-heading">
+
+          <div>
+
+            <div class="section-kicker">
+              AGENTIC WORKFLOW
+            </div>
+
+            <h2>
+              Multi-Agent Recovery Pipeline
+            </h2>
+
+          </div>
+
+          <span class="pipeline-state">
+            READY
+          </span>
+
+        </div>
+
+
+        <div class="pipeline">
+
+          <!-- 01 -->
+
+          <div
+            id="pipeline-disruption"
+            class="pipeline-node"
+          >
+
+            <div class="pipeline-number">
+              01
+            </div>
+
+            <div class="pipeline-icon">
+              !
+            </div>
+
+            <div class="pipeline-text">
+
+              <strong>
+                Disruption Sensing
+              </strong>
+
+              <span>
+                Detect event
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="pipeline-arrow">
+            →
+          </div>
+
+
+          <!-- 02 -->
+
+          <div
+            id="pipeline-impact"
+            class="pipeline-node"
+          >
+
+            <div class="pipeline-number">
+              02
+            </div>
+
+            <div class="pipeline-icon">
+              IA
+            </div>
+
+            <div class="pipeline-text">
+
+              <strong>
+                Impact Analysis
+              </strong>
+
+              <span>
+                Assess exposure
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="pipeline-arrow">
+            →
+          </div>
+
+
+          <!-- 03 -->
+
+          <div
+            id="pipeline-scenario"
+            class="pipeline-node"
+          >
+
+            <div class="pipeline-number">
+              03
+            </div>
+
+            <div class="pipeline-icon">
+              SP
+            </div>
+
+            <div class="pipeline-text">
+
+              <strong>
+                Scenario Planning
+              </strong>
+
+              <span>
+                Rank options
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="pipeline-arrow">
+            →
+          </div>
+
+
+          <!-- 04 -->
+
+          <div
+            id="pipeline-human"
+            class="pipeline-node human-pipeline-node"
+          >
+
+            <div class="pipeline-number">
+              04
+            </div>
+
+            <div class="pipeline-icon">
+              HM
+            </div>
+
+            <div class="pipeline-text">
+
+              <strong>
+                Human Decision
+              </strong>
+
+              <span>
+                Approve / Modify / Reject
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="pipeline-arrow">
+            →
+          </div>
+
+
+          <!-- 05 -->
+
+          <div
+            id="pipeline-rerouting"
+            class="pipeline-node"
+          >
+
+            <div class="pipeline-number">
+              05
+            </div>
+
+            <div class="pipeline-icon">
+              RT
+            </div>
+
+            <div class="pipeline-text">
+
+              <strong>
+                Rerouting
+              </strong>
+
+              <span>
+                Change route
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="pipeline-arrow">
+            →
+          </div>
+
+
+          <!-- 06 -->
+
+          <div
+            id="pipeline-inventory"
+            class="pipeline-node"
+          >
+
+            <div class="pipeline-number">
+              06
+            </div>
+
+            <div class="pipeline-icon">
+              IR
+            </div>
+
+            <div class="pipeline-text">
+
+              <strong>
+                Inventory
+              </strong>
+
+              <span>
+                Rebalance stock
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="pipeline-arrow">
+            →
+          </div>
+
+
+          <!-- 07 -->
+
+          <div
+            id="pipeline-recovery"
+            class="pipeline-node recovery-pipeline-node"
+          >
+
+            <div class="pipeline-number">
+              07
+            </div>
+
+            <div class="pipeline-icon">
+              ✓
+            </div>
+
+            <div class="pipeline-text">
+
+              <strong>
+                Recovery
+              </strong>
+
+              <span>
+                Complete
+              </span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           LOADING
+      =================================================== -->
+
+      <section
+        id="loadingPanel"
+        class="loading-panel hidden"
+      >
+
+        <div class="spinner"></div>
+
+        <div>
+
+          <strong>
+            PharmaGuard agents are analyzing...
+          </strong>
+
+          <span>
+            Detecting disruption → Assessing impact →
+            Generating recovery scenarios
+          </span>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           DISRUPTION ALERT
+      =================================================== -->
+
+      <section
+        id="alertPanel"
+        class="alert-panel hidden"
+      >
+
+        <div class="alert-icon">
+          !
+        </div>
+
+
+        <div class="alert-content">
+
+          <div class="alert-label">
+            ACTIVE DISRUPTION
+          </div>
+
+          <h2 id="disruptionTitle">
+            —
+          </h2>
+
+
+          <div class="alert-meta">
+
+            <span>
+              Severity:
+              <strong id="severityValue">
+                —
+              </strong>
+            </span>
+
+
+            <span>
+              Affected shipments:
+              <strong id="shipmentCount">
+                —
+              </strong>
+            </span>
+
+
+            <span>
+              Destinations:
+              <strong id="destinationCount">
+                —
+              </strong>
+            </span>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           IMPACT
+      =================================================== -->
+
+      <section
+        id="impactSection"
+        class="dashboard-section hidden"
+      >
+
+        <div class="section-title-row">
+
+          <div>
+
+            <div class="section-kicker">
+              STEP 02
+            </div>
+
+            <h2>
+              Operational Impact
+            </h2>
+
+            <p>
+              Shipments and destinations affected by
+              the detected disruption.
+            </p>
+
+          </div>
+
+
+          <div class="agent-badge">
+            IMPACT ANALYSIS AGENT
+          </div>
+
+        </div>
+
+
+        <div
+          id="impactCards"
+          class="shipment-grid"
+        ></div>
+
+      </section>
+
+
+      <!-- ==================================================
+           SCENARIOS
+      =================================================== -->
+
+      <section
+        id="scenarioSection"
+        class="dashboard-section hidden"
+      >
+
+        <div class="section-title-row">
+
+          <div>
+
+            <div class="section-kicker">
+              STEP 03
+            </div>
+
+            <h2>
+              AI Recovery Scenarios
+            </h2>
+
+            <p>
+              Ranked recovery options generated from
+              disruption and impact analysis.
+            </p>
+
+          </div>
+
+
+          <div class="agent-badge">
+            SCENARIO PLANNING AGENT
+          </div>
+
+        </div>
+
+
+        <div
+          id="scenarioCards"
+          class="scenario-grid"
+        ></div>
+
+      </section>
+
+
+      <!-- ==================================================
+           DECISION SUMMARY
+      =================================================== -->
+
+      <section
+        id="decisionSummary"
+        class="decision-summary hidden"
+      >
+
+        <div class="decision-summary-header">
+
+          <div>
+
+            <div class="section-kicker">
+              AI DECISION INTELLIGENCE
+            </div>
+
+            <h2>
+              Recommended Recovery
+            </h2>
+
+          </div>
+
+
+          <div class="recommendation-badge">
+            AI RECOMMENDATION
+          </div>
+
+        </div>
+
+
+        <div
+          id="recommendationContent"
+          class="recommendation-content"
+        >
+
+          <div class="recommendation-placeholder">
+
+            Select a recovery scenario to view
+            the decision rationale.
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           HUMAN APPROVAL
+      =================================================== -->
+
+      <section
+        id="approvalSection"
+        class="approval-section hidden"
+      >
+
+        <div class="approval-header">
+
+          <div>
+
+            <div class="section-kicker">
+              STEP 04
+            </div>
+
+            <h2>
+              Human Decision Required
+            </h2>
+
+            <p>
+              AI recommends. The Supply Chain Manager decides.
+            </p>
+
+          </div>
+
+
+          <div class="human-badge">
+            HUMAN-IN-THE-LOOP
+          </div>
+
+        </div>
+
+
+        <div
+          id="selectedPlan"
+          class="selected-plan"
+        ></div>
+
+
+        <div class="decision-buttons">
+
+          <button
+            type="button"
+            class="approve-button"
+            onclick="approveSelectedPlan()"
+          >
+            ✓ Approve Plan
+          </button>
+
+
+          <button
+            type="button"
+            class="modify-button"
+            onclick="openModifyDialog()"
+          >
+            ✎ Modify Plan
+          </button>
+
+
+          <button
+            type="button"
+            class="reject-button"
+            onclick="rejectSelectedPlan()"
+          >
+            ✕ Reject Plan
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           MODIFY
+      =================================================== -->
+
+      <section
+        id="modifySection"
+        class="modify-section hidden"
+      >
+
+        <div class="section-title-row">
+
+          <div>
+
+            <div class="section-kicker">
+              HUMAN MODIFICATION
+            </div>
+
+            <h2>
+              Modify Recovery Plan
+            </h2>
+
+            <p>
+              The human decision-maker can change the
+              AI-generated recovery before execution.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="modify-grid">
+
+          <label>
+
+            Route
+
+            <input
+              id="modifyRoute"
+              type="text"
+            >
+
+          </label>
+
+
+          <label>
+
+            ETA (hours)
+
+            <input
+              id="modifyEta"
+              type="number"
+              min="1"
+            >
+
+          </label>
+
+
+          <label>
+
+            Risk
+
+            <select id="modifyRisk">
+
+              <option value="LOW">
+                LOW
+              </option>
+
+              <option value="MEDIUM">
+                MEDIUM
+              </option>
+
+              <option value="HIGH">
+                HIGH
+              </option>
+
+            </select>
+
+          </label>
+
+
+          <label>
+
+            Cost
+
+            <select id="modifyCost">
+
+              <option value="LOW">
+                LOW
+              </option>
+
+              <option value="MEDIUM">
+                MEDIUM
+              </option>
+
+              <option value="HIGH">
+                HIGH
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+
+        <div class="modify-actions">
+
+          <button
+            type="button"
+            class="primary-button"
+            onclick="submitModification()"
+          >
+            Apply Modification
+          </button>
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            onclick="closeModifyDialog()"
+          >
+            Cancel
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           EXECUTION
+      =================================================== -->
+
+      <section
+        id="executionSection"
+        class="dashboard-section hidden"
+      >
+
+        <div class="section-title-row">
+
+          <div>
+
+            <div class="section-kicker">
+              STEP 05
+            </div>
+
+            <h2>
+              Recovery Execution
+            </h2>
+
+            <p>
+              Real execution results returned by the
+              PharmaGuard recovery orchestrator.
+            </p>
+
+          </div>
+
+
+          <div class="agent-badge">
+            RECOVERY ORCHESTRATOR
+          </div>
+
+        </div>
+
+
+        <div
+          id="executionStatus"
+          class="execution-status"
+        ></div>
+
+
+        <div
+          id="executionCards"
+          class="execution-grid"
+        ></div>
+
+      </section>
+
+
+      <!-- ==================================================
+           EXECUTION TIMELINE
+      =================================================== -->
+
+      <section
+        id="executionTimelineSection"
+        class="timeline-section hidden"
+      >
+
+        <div class="timeline-header">
+
+          <div>
+
+            <div class="section-kicker">
+              AGENT EXECUTION TRACE
+            </div>
+
+            <h2>
+              Recovery Execution Timeline
+            </h2>
+
+            <p>
+              Transparent view of decisions and actions
+              across the PharmaGuard agent network.
+            </p>
+
+          </div>
+
+
+          <div class="trace-badge">
+            TRACEABLE
+          </div>
+
+        </div>
+
+
+        <div
+          id="executionTimeline"
+          class="execution-timeline"
+        ></div>
+
+      </section>
+
+
+      <!-- ==================================================
+           SYSTEM AUDIT
+      =================================================== -->
+
+      <section
+        id="auditSection"
+        class="audit-section hidden"
+      >
+
+        <div class="audit-header">
+
+          <div>
+
+            <div class="section-kicker">
+              SYSTEM AUDIT
+            </div>
+
+            <h2>
+              Recovery Decision Record
+            </h2>
+
+          </div>
+
+
+          <div class="audit-status">
+            AUDIT READY
+          </div>
+
+        </div>
+
+
+        <div
+          id="auditContent"
+          class="audit-content"
+        ></div>
+
+      </section>
+
+
+      <!-- ==================================================
+           TOAST
+      =================================================== -->
+
+      <div
+        id="toast"
+        class="toast hidden"
+      ></div>
+
+    </main>
+
+  </div>
+
+
+  <script src="/app.js"></script>
+
+</body>
+
+</html>
