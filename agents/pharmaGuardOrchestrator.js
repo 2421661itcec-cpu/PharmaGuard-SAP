@@ -171,6 +171,36 @@ function executeApprovedRecovery(approvalResult) {
     transfer: transferResult
   };
 
+  try {
+    const { addHistoryEntry } = require("../data/recoveryHistoryStore");
+    const isCold = Boolean(
+      (shipment.medicine || "").toLowerCase().includes("vaccine") ||
+      (shipment.medicine || "").toLowerCase().includes("insulin")
+    );
+    addHistoryEntry({
+      shipment_id: shipmentId,
+      medicine: shipment.medicine,
+      priority: shipment.priority,
+      cold_chain: isCold,
+      disruption_event: approvalResult.decision_reason || "Dynamic Supply Chain Recovery Execution",
+      disrupted_location: shipment.origin,
+      decision: approvalResult.status || "APPROVED",
+      decision_by: approvalResult.decision_by || "Supply Chain Manager",
+      original_route: rerouteResult.original_route || shipment.route,
+      recovery_route: rerouteResult.new_route || plan.route,
+      origin: shipment.origin,
+      destination: shipment.destination,
+      eta_hours: plan.eta_hours || rerouteResult.new_eta_hours || 3.5,
+      eta_saved_hours: 2.0,
+      status: "EXECUTED & REROUTED",
+      inventory_action: inventoryAnalysis?.message || "Inventory position evaluated",
+      urgency_label: plan.urgency_label || (shipment.priority === "Critical" ? "🚨 PRIORITY: DEFICIT / EMERGENCY" : "ℹ️ LESS PRIOR: ROUTINE BUFFER"),
+      audit_notes: `Plan ${plan.id || 'Custom'} (${plan.name || 'Emergency Diversion'}) authorized by ${approvalResult.decision_by || 'controller'}.`
+    });
+  } catch (e) {
+    console.error("Failed to log recovery history:", e);
+  }
+
   return {
     stage: "RECOVERY_EXECUTED",
 

@@ -25,7 +25,11 @@ const trackingRoutes =
 const medicineRoutes =
   require("./routes/medicineRoutes");
 
+const recoveryRoutes =
+  require("./routes/recoveryRoutes");
+
 const shipments =
+
   require("./data/shipments");
 
 const inventory =
@@ -89,6 +93,12 @@ app.use(
   "/api/medicines",
   medicineRoutes
 );
+
+app.use(
+  "/api/recovery",
+  recoveryRoutes
+);
+
 
 
 // --------------------------------------------------

@@ -2897,38 +2897,22 @@ document.addEventListener(
         $("pg4RefreshButton");
 
 
-      if (
-        refreshButton
-      ) {
-
-        refreshButton.addEventListener(
-          "click",
-          () => {
-
-            if (
-              title ===
-              "Shipments"
-            ) {
-
-              loadShipments();
-
-            } else if (
-              title ===
-              "Network Map"
-            ) {
-
-              showNetworkMap();
-
-            } else {
-
-              loadInventory();
-
-            }
-
+      if (refreshButton) {
+        refreshButton.addEventListener("click", () => {
+          if (title === "Shipments") {
+            loadShipments();
+          } else if (title === "Network Map") {
+            showNetworkMap();
+          } else if (title === "Recovery History") {
+            showRecoveryHistory();
+          } else if (title === "Medicine Master") {
+            loadMedicineMaster();
+          } else {
+            loadInventory();
           }
-        );
-
+        });
       }
+
 
     }
 
@@ -4213,49 +4197,271 @@ document.addEventListener(
     // RECOVERY HISTORY — TEMPORARY
     // ------------------------------------------------
 
-    function showRecoveryHistory() {
-
+    async function showRecoveryHistory() {
       setActiveNav(4);
+      commandCenterView.style.display = "none";
+      pageView.style.display = "block";
 
-      commandCenterView.style.display =
-        "none";
-
-      pageView.style.display =
-        "block";
-
-      // Clean up map if active
       if (window._pgMapCleanup) {
         window._pgMapCleanup();
+        window._pgMapCleanup = null;
       }
-
 
       renderPageShell(
         "RECOVERY OPERATIONS",
         "Recovery History",
-        "Review completed human decisions and recovery executions.",
+        "Review completed human decisions, multi-agent rerouting, and inventory rebalancing executions.",
         `
-
-          <div
-            class="pg4-table-card"
-          >
-
-            <div
-              class="pg4-empty"
-            >
-
-              Recovery History
-              integration will be
-              completed in the next
-              hardening phase.
-
+          <div class="pg4-table-card">
+            <div class="pg4-loading" style="padding:40px;text-align:center;color:#64748b;font-weight:600;">
+              Loading recovery history audit trail...
             </div>
-
           </div>
-
         `
       );
 
+      try {
+        const res = await api("/api/recovery/history");
+        const history = res.history || [];
+        const summary = res.summary || {
+          total_recoveries: history.length,
+          approved_count: 0,
+          modified_count: 0,
+          critical_rescued: 0,
+          avg_hours_saved: "2.0"
+        };
+
+        const renderHistoryContent = (items) => `
+          <div class="pg4-summary-grid">
+            <div class="pg4-summary-card">
+              <div class="pg4-summary-label">Total Recoveries</div>
+              <div class="pg4-summary-value">${summary.total_recoveries}</div>
+            </div>
+            <div class="pg4-summary-card">
+              <div class="pg4-summary-label">Human Decisions</div>
+              <div class="pg4-summary-value" style="color:#0f5bd3;">
+                ${summary.approved_count + summary.modified_count}
+                <span style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-top:2px;">
+                  ${summary.modified_count} Modified • ${summary.approved_count} Approved
+                </span>
+              </div>
+            </div>
+            <div class="pg4-summary-card">
+              <div class="pg4-summary-label">Critical Rescued</div>
+              <div class="pg4-summary-value" style="color:#dc2626;">
+                ${summary.critical_rescued}
+                <span style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-top:2px;">
+                  ${summary.cold_chain_count || 0} Cold Chain Protected ❄️
+                </span>
+              </div>
+            </div>
+            <div class="pg4-summary-card">
+              <div class="pg4-summary-label">Avg Recovery Saved</div>
+              <div class="pg4-summary-value" style="color:#16a34a;">
+                +${summary.avg_hours_saved}h
+                <span style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-top:2px;">
+                  Per transit corridor
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pg4-table-card">
+            <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:16px;background:#f8fafc;flex-wrap:wrap;">
+              <input
+                id="pgHistorySearch"
+                type="text"
+                placeholder="Search history by Shipment ID, Medicine, Origin, or Destination..."
+                style="padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;width:380px;max-width:100%;background:#ffffff;"
+              >
+              <div style="font-size:12px;color:#64748b;font-weight:600;">
+                Showing <strong id="pgHistoryCount">${items.length}</strong> verified recovery audit logs
+              </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table class="pg4-table" id="pgHistoryTable">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Shipment & Cargo</th>
+                    <th>Disruption Event</th>
+                    <th>Human Decision</th>
+                    <th>Corridor Rerouted</th>
+                    <th>Destination & Priority</th>
+                    <th>ETA Saved</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="pgHistoryTbody">
+                  ${items.map(h => {
+                    const isMod = h.decision === "MODIFIED";
+                    const isUrgentDest = Boolean(
+                      h.urgency_label?.includes("PRIORITY_1") ||
+                      h.urgency_label?.includes("DEFICIT") ||
+                      h.urgency_label?.includes("EMERGENCY") ||
+                      String(h.priority).toLowerCase() === "critical"
+                    );
+                    const dateStr = new Date(h.timestamp).toLocaleString("en-IN", {
+                      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+                    });
+
+                    return `
+                      <tr>
+                        <td style="white-space:nowrap;font-size:12.5px;color:#64748b;font-weight:600;">
+                          ${escapeHtml(dateStr)}
+                          <div style="font-size:11px;color:#94a3b8;font-family:monospace;">${escapeHtml(h.id)}</div>
+                        </td>
+                        <td>
+                          <span class="pg4-id">${escapeHtml(h.shipment_id)}</span>
+                          <div class="pg4-medicine" style="font-size:13px;margin-top:2px;">
+                            ${escapeHtml(h.medicine)}
+                          </div>
+                          ${h.cold_chain ? '<span style="font-size:10.5px;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;">❄️ Cold Chain</span>' : ''}
+                        </td>
+                        <td style="max-width:200px;">
+                          <div style="font-weight:700;color:#1e293b;font-size:13px;">${escapeHtml(h.disruption_event)}</div>
+                          <div style="font-size:11.5px;color:#64748b;">Hub: <strong>${escapeHtml(h.disrupted_location)}</strong></div>
+                        </td>
+                        <td>
+                          <span class="pg4-badge" style="${isMod ? 'background:#f3e8ff;color:#7e22ce;border:1px solid #d8b4fe;' : 'background:#dcfce7;color:#15803d;border:1px solid #86efac;'}">
+                            ${isMod ? '✏️ MODIFIED' : '✓ APPROVED'}
+                          </span>
+                          <div style="font-size:11px;color:#64748b;margin-top:3px;">By: ${escapeHtml(h.decision_by)}</div>
+                        </td>
+                        <td class="pg4-route" style="max-width:240px;font-size:12px;">
+                          <div style="color:#64748b;text-decoration:line-through;">${escapeHtml(h.original_route)}</div>
+                          <div style="color:#0f5bd3;font-weight:700;margin-top:2px;">➔ ${escapeHtml(h.recovery_route)}</div>
+                        </td>
+                        <td>
+                          <div style="font-weight:800;color:#0f172a;font-size:13.5px;">🏁 ${escapeHtml(h.destination)}</div>
+                          <span class="pg4-badge" style="margin-top:3px;font-size:10px;${isUrgentDest ? 'background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;' : 'background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;'}">
+                            ${escapeHtml(h.urgency_label || (isUrgentDest ? '🚨 PRIORITY' : 'ℹ️ LESS PRIOR'))}
+                          </span>
+                        </td>
+                        <td>
+                          <strong style="color:#16a34a;font-size:13px;">+${h.eta_saved_hours || 2}h saved</strong>
+                          <div style="font-size:11.5px;color:#64748b;">ETA: ${h.eta_hours}h</div>
+                        </td>
+                        <td>
+                          <span class="pg4-badge" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">
+                            ${escapeHtml(h.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+
+        renderPageShell(
+          "RECOVERY OPERATIONS",
+          "Recovery History",
+          "Review completed human decisions, multi-agent rerouting, and inventory rebalancing executions.",
+          renderHistoryContent(history)
+        );
+
+        // Bind Live Search Filter
+        const searchInput = $("pgHistorySearch");
+        if (searchInput) {
+          searchInput.oninput = () => {
+            const q = searchInput.value.toLowerCase().trim();
+            const filtered = history.filter(h =>
+              (h.shipment_id || "").toLowerCase().includes(q) ||
+              (h.medicine || "").toLowerCase().includes(q) ||
+              (h.origin || "").toLowerCase().includes(q) ||
+              (h.destination || "").toLowerCase().includes(q) ||
+              (h.disruption_event || "").toLowerCase().includes(q) ||
+              (h.decision || "").toLowerCase().includes(q)
+            );
+            const tbody = $("pgHistoryTbody");
+            const countEl = $("pgHistoryCount");
+            if (countEl) countEl.textContent = filtered.length;
+            if (tbody) {
+              if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:#64748b;">No matching recovery audit records found.</td></tr>`;
+              } else {
+                tbody.innerHTML = filtered.map(h => {
+                  const isMod = h.decision === "MODIFIED";
+                  const isUrgentDest = Boolean(
+                    h.urgency_label?.includes("PRIORITY_1") ||
+                    h.urgency_label?.includes("DEFICIT") ||
+                    h.urgency_label?.includes("EMERGENCY") ||
+                    String(h.priority).toLowerCase() === "critical"
+                  );
+                  const dateStr = new Date(h.timestamp).toLocaleString("en-IN", {
+                    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+                  });
+                  return `
+                    <tr>
+                      <td style="white-space:nowrap;font-size:12.5px;color:#64748b;font-weight:600;">
+                        ${escapeHtml(dateStr)}
+                        <div style="font-size:11px;color:#94a3b8;font-family:monospace;">${escapeHtml(h.id)}</div>
+                      </td>
+                      <td>
+                        <span class="pg4-id">${escapeHtml(h.shipment_id)}</span>
+                        <div class="pg4-medicine" style="font-size:13px;margin-top:2px;">
+                          ${escapeHtml(h.medicine)}
+                        </div>
+                        ${h.cold_chain ? '<span style="font-size:10.5px;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;">❄️ Cold Chain</span>' : ''}
+                      </td>
+                      <td style="max-width:200px;">
+                        <div style="font-weight:700;color:#1e293b;font-size:13px;">${escapeHtml(h.disruption_event)}</div>
+                        <div style="font-size:11.5px;color:#64748b;">Hub: <strong>${escapeHtml(h.disrupted_location)}</strong></div>
+                      </td>
+                      <td>
+                        <span class="pg4-badge" style="${isMod ? 'background:#f3e8ff;color:#7e22ce;border:1px solid #d8b4fe;' : 'background:#dcfce7;color:#15803d;border:1px solid #86efac;'}">
+                          ${isMod ? '✏️ MODIFIED' : '✓ APPROVED'}
+                        </span>
+                        <div style="font-size:11px;color:#64748b;margin-top:3px;">By: ${escapeHtml(h.decision_by)}</div>
+                      </td>
+                      <td class="pg4-route" style="max-width:240px;font-size:12px;">
+                        <div style="color:#64748b;text-decoration:line-through;">${escapeHtml(h.original_route)}</div>
+                        <div style="color:#0f5bd3;font-weight:700;margin-top:2px;">➔ ${escapeHtml(h.recovery_route)}</div>
+                      </td>
+                      <td>
+                        <div style="font-weight:800;color:#0f172a;font-size:13.5px;">🏁 ${escapeHtml(h.destination)}</div>
+                        <span class="pg4-badge" style="margin-top:3px;font-size:10px;${isUrgentDest ? 'background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;' : 'background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;'}">
+                          ${escapeHtml(h.urgency_label || (isUrgentDest ? '🚨 PRIORITY' : 'ℹ️ LESS PRIOR'))}
+                        </span>
+                      </td>
+                      <td>
+                        <strong style="color:#16a34a;font-size:13px;">+${h.eta_saved_hours || 2}h saved</strong>
+                        <div style="font-size:11.5px;color:#64748b;">ETA: ${h.eta_hours}h</div>
+                      </td>
+                      <td>
+                        <span class="pg4-badge" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">
+                          ${escapeHtml(h.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  `;
+                }).join("");
+              }
+            }
+          };
+        }
+
+      } catch (err) {
+        console.error("Failed to load recovery history:", err);
+        renderPageShell(
+          "RECOVERY OPERATIONS",
+          "Recovery History",
+          "Review completed human decisions and recovery executions.",
+          `
+            <div class="pg4-table-card">
+              <div class="pg4-error" style="padding:30px;color:#b91c1c;">
+                Unable to load recovery history: ${escapeHtml(err.message)}
+              </div>
+            </div>
+          `
+        );
+      }
     }
+
 
 
     // ------------------------------------------------
