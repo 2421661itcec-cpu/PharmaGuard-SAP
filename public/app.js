@@ -3603,9 +3603,49 @@ document.addEventListener(
         `;
       }
 
-      // Draw Zomato-style route polyline between Origin and Destination
+      // Smooth Curved Geodesic Path Generator for Road & Flight in all cases
+      function generateCurvedPath(start, end, numPoints = 24) {
+        const [lat1, lng1] = start;
+        const [lat2, lng2] = end;
+        const midLat = (lat1 + lat2) / 2;
+        const midLng = (lng1 + lng2) / 2;
+        const dLat = lat2 - lat1;
+        const dLng = lng2 - lng1;
+        const curvature = 0.16; // Elegant subtle curvature
+        const ctrlLat = midLat - dLng * curvature;
+        const ctrlLng = midLng + dLat * curvature;
+
+        const points = [];
+        for (let i = 0; i <= numPoints; i++) {
+          const t = i / numPoints;
+          const invT = 1 - t;
+          const lat = invT * invT * lat1 + 2 * invT * t * ctrlLat + t * t * lat2;
+          const lng = invT * invT * lng1 + 2 * invT * t * ctrlLng + t * t * lng2;
+          points.push([parseFloat(lat.toFixed(5)), parseFloat(lng.toFixed(5))]);
+        }
+        return points;
+      }
+
+      function buildSmoothCurvedWaypoints(rawPoints) {
+        if (!rawPoints || rawPoints.length < 2) return rawPoints || [];
+        if (rawPoints.length >= 15) return rawPoints;
+
+        const curved = [];
+        for (let i = 0; i < rawPoints.length - 1; i++) {
+          const seg = generateCurvedPath(rawPoints[i], rawPoints[i + 1], 20);
+          if (i > 0) seg.shift();
+          curved.push(...seg);
+        }
+        return curved;
+      }
+
+      // Draw route polyline as smooth curved shortest path between Origin and Destination
       function drawOrUpdateRouteLine(t) {
-        const waypoints = t.waypoints || [];
+        const rawWaypoints = (t.waypoints && t.waypoints.length >= 2)
+          ? t.waypoints
+          : (t.origin_coords && t.destination_coords ? [t.origin_coords, t.destination_coords] : []);
+
+        const waypoints = buildSmoothCurvedWaypoints(rawWaypoints);
         if (waypoints.length < 2) return;
 
         const isRerouted = t.status && String(t.status).toLowerCase() === "rerouted";
@@ -3618,7 +3658,7 @@ document.addEventListener(
           routeLinesGroup.removeLayer(routePolylines[t.shipment_id].line);
         }
 
-        // 1. Casing polyline (soft glowing border)
+        // 1. Casing polyline (soft glowing ambient border along curved path)
         const casing = L.polyline(waypoints, {
           color: casingColor,
           weight: 8,
@@ -3627,7 +3667,7 @@ document.addEventListener(
           lineJoin: "round"
         }).addTo(routeLinesGroup);
 
-        // 2. Main delivery route polyline (crisp dashed line like Zomato/Swiggy tracking)
+        // 2. Main delivery route polyline (smooth curved shortest trajectory)
         const line = L.polyline(waypoints, {
           color: primaryColor,
           weight: 3.5,
@@ -3638,12 +3678,13 @@ document.addEventListener(
         }).addTo(routeLinesGroup);
 
         line.bindTooltip(
-          `<strong>${escapeHtml(t.shipment_id)} Route</strong>: ${escapeHtml(t.route || "")}`,
+          `<strong>${escapeHtml(t.shipment_id)} Curved Path</strong>: ${escapeHtml(t.route || "")}`,
           { sticky: true, className: "nm-route-tooltip" }
         );
 
         routePolylines[t.shipment_id] = { casing, line, currentRoute: t.route };
       }
+
 
       // Draw Origin and Destination endpoints
       function drawEndpoints(t) {
