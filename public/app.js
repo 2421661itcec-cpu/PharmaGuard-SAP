@@ -977,7 +977,10 @@ function renderSelectedPlan() {
     `;
 
     return;
+  }
+
   const isUrgent = Boolean(selectedPlan.is_emergency || selectedPlan.is_deficit || selectedPlan.urgency_tier?.includes("PRIORITY_1") || String(selectedPlan.priority).toLowerCase() === "critical");
+
   const badgeText = selectedPlan.urgency_label || (isUrgent ? "🚨 PRIORITY: DEFICIT / EMERGENCY" : "ℹ️ LESS PRIOR: ROUTINE BUFFER");
   const badgeStyle = isUrgent
     ? "background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:800;"
