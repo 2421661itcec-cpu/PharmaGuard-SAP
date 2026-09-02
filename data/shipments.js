@@ -1,3 +1,11 @@
+// --------------------------------------------------
+// SHIPMENTS DATA
+// Existing fields are PRESERVED exactly.
+// New fields added: lat, lng (starting coordinates)
+// These are used by the GPS simulator as the
+// initial map position for each shipment marker.
+// --------------------------------------------------
+
 const shipments = [
   {
     id: "SH001",
@@ -6,7 +14,9 @@ const shipments = [
     origin: "Delhi",
     destination: "Chandigarh",
     route: "Delhi → Ambala → Chandigarh",
-    status: "In Transit"
+    status: "In Transit",
+    lat: 28.6139,
+    lng: 77.2090
   },
   {
     id: "SH002",
@@ -15,7 +25,9 @@ const shipments = [
     origin: "Delhi",
     destination: "Ludhiana",
     route: "Delhi → Ludhiana",
-    status: "In Transit"
+    status: "In Transit",
+    lat: 28.6139,
+    lng: 77.2090
   },
   {
     id: "SH003",
@@ -24,7 +36,9 @@ const shipments = [
     origin: "Mumbai",
     destination: "Delhi",
     route: "Mumbai → Delhi",
-    status: "In Transit"
+    status: "In Transit",
+    lat: 19.0760,
+    lng: 72.8777
   },
   {
     id: "SH004",
@@ -33,7 +47,9 @@ const shipments = [
     origin: "Ambala",
     destination: "Amritsar",
     route: "Ambala → Amritsar",
-    status: "In Transit"
+    status: "In Transit",
+    lat: 30.3782,
+    lng: 76.7767
   }
 ];
 

@@ -2334,7 +2334,7 @@ document.addEventListener(
     hide("impactSection");
     hide("scenarioSection");
     hide("approvalSection");
-    hide("modifySection");
+hide("modifySection");
     hide("executionSection");
 
 
@@ -2345,7 +2345,7 @@ document.addEventListener(
   }
 );
 // ==================================================
-// PG4 — NAVIGATION + SHIPMENTS / INVENTORY VIEWS
+// PG4 — NAVIGATION + SHIPMENTS / INVENTORY / NETWORK MAP
 // ==================================================
 
 document.addEventListener(
@@ -2367,7 +2367,7 @@ document.addEventListener(
 
     if (
       !main ||
-      navItems.length < 4
+      navItems.length < 5
     ) {
       return;
     }
@@ -2375,58 +2375,55 @@ document.addEventListener(
 
     // ------------------------------------------------
     // COMMAND CENTER CONTAINER
+    // Use the pre-built #commandCenterView from HTML.
+    // If not found (old HTML), fall back to dynamic.
     // ------------------------------------------------
 
-    const commandCenterView =
-      document.createElement(
-        "div"
-      );
+    let commandCenterView =
+      document.getElementById("commandCenterView");
 
-    commandCenterView.id =
-      "commandCenterView";
+    if (!commandCenterView) {
+      commandCenterView =
+        document.createElement("div");
 
-    commandCenterView.style.display =
-      "contents";
+      commandCenterView.id =
+        "commandCenterView";
 
+      commandCenterView.style.display =
+        "contents";
 
-    while (
-      main.firstChild
-    ) {
+      while (main.firstChild) {
+        commandCenterView.appendChild(main.firstChild);
+      }
 
-      commandCenterView.appendChild(
-        main.firstChild
-      );
-
+      main.appendChild(commandCenterView);
+    } else {
+      commandCenterView.style.display = "contents";
     }
-
-
-    main.appendChild(
-      commandCenterView
-    );
 
 
     // ------------------------------------------------
     // PG4 PAGE CONTAINER
+    // Use the pre-built #pageView from HTML.
+    // If not found (old HTML), fall back to dynamic.
     // ------------------------------------------------
 
-    const pageView =
-      document.createElement(
-        "div"
-      );
+    let pageView =
+      document.getElementById("pageView");
 
-    pageView.id =
-      "pg4PageView";
+    if (!pageView) {
+      pageView =
+        document.createElement("div");
 
-    pageView.className =
-      "pg4-page-view";
+      pageView.id = "pg4PageView";
+      pageView.className = "pg4-page-view";
+      pageView.style.display = "none";
 
-    pageView.style.display =
-      "none";
-
-
-    main.appendChild(
-      pageView
-    );
+      main.appendChild(pageView);
+    } else {
+      pageView.className = "pg4-page-view";
+      pageView.style.display = "none";
+    }
 
 
     // ------------------------------------------------
@@ -2643,6 +2640,19 @@ document.addEventListener(
         color: #b91c1c;
       }
 
+      /* Network Map Specific */
+      .nm-wrapper { background: #fff; border: 1px solid #dce3ed; border-radius: 14px; overflow: hidden; }
+      .nm-status-bar { padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #475569; }
+      .nm-live-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; }
+      .nm-map-container { height: 500px; width: 100%; z-index: 1; }
+      .nm-legend { padding: 12px; display: flex; gap: 16px; font-size: 12px; color: #64748b; }
+      .nm-legend-item { display: flex; align-items: center; gap: 6px; }
+      .nm-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+      .nm-dot-critical { background: #dc2626; }
+      .nm-dot-high { background: #ea580c; }
+      .nm-dot-medium { background: #ca8a04; }
+      .nm-dot-rerouted { background: #7c3aed; }
+
 
       @media (max-width: 900px) {
 
@@ -2719,6 +2729,11 @@ document.addEventListener(
         top: 0,
         behavior: "smooth"
       });
+
+      // Clean up map if active
+      if (window._pgMapCleanup) {
+        window._pgMapCleanup();
+      }
 
     }
 
@@ -2863,6 +2878,13 @@ document.addEventListener(
 
               loadShipments();
 
+            } else if (
+              title ===
+              "Network Map"
+            ) {
+
+              showNetworkMap();
+
             } else {
 
               loadInventory();
@@ -2890,6 +2912,11 @@ document.addEventListener(
 
       pageView.style.display =
         "block";
+
+      // Clean up map if active
+      if (window._pgMapCleanup) {
+        window._pgMapCleanup();
+      }
 
 
       renderPageShell(
@@ -3032,7 +3059,7 @@ document.addEventListener(
                         <tr>
 
                           <th>
-                            Shipment
+                            ID
                           </th>
 
                           <th>
@@ -3202,10 +3229,10 @@ document.addEventListener(
 
 
     // ------------------------------------------------
-    // INVENTORY
+    // NETWORK MAP
     // ------------------------------------------------
 
-    async function loadInventory() {
+    function showNetworkMap() {
 
       setActiveNav(2);
 
@@ -3214,6 +3241,276 @@ document.addEventListener(
 
       pageView.style.display =
         "block";
+
+      // Clean up any previous map instance
+      if (window._pgMapCleanup) {
+        window._pgMapCleanup();
+        window._pgMapCleanup = null;
+      }
+
+      renderPageShell(
+        "SIMULATED LIVE TRACKING",
+        "Network Map",
+        "Real-time simulated shipment positions across the pharmaceutical supply network.",
+        `
+          <div class="nm-wrapper">
+            <div class="nm-status-bar">
+              <span class="nm-live-dot"></span>
+              <span class="nm-live-label">SIMULATED LIVE TRACKING</span>
+              <span class="nm-last-update" id="nmLastUpdate">Connecting...</span>
+            </div>
+            <div id="nmMapContainer" class="nm-map-container"></div>
+            <div class="nm-legend">
+              <div class="nm-legend-item">
+                <span class="nm-legend-dot nm-dot-critical"></span> Critical
+              </div>
+              <div class="nm-legend-item">
+                <span class="nm-legend-dot nm-dot-high"></span> High
+              </div>
+              <div class="nm-legend-item">
+                <span class="nm-legend-dot nm-dot-medium"></span> Medium
+              </div>
+              <div class="nm-legend-item">
+                <span class="nm-legend-dot nm-dot-rerouted"></span> Rerouted
+              </div>
+            </div>
+          </div>
+        `
+      );
+
+      // Hide the Refresh Data button for map view
+      const refreshBtn = $("pg4RefreshButton");
+      if (refreshBtn) {
+        refreshBtn.style.display = "none";
+      }
+
+      initNetworkMap();
+
+    }
+
+
+    function initNetworkMap() {
+
+      // Guard: Leaflet must be loaded
+      if (typeof L === "undefined") {
+        const container = document.getElementById("nmMapContainer");
+        if (container) {
+          container.innerHTML =
+            '<div class="pg4-error" style="padding:40px;">Map library unavailable. The rest of PharmaGuard continues to work normally.</div>';
+        }
+        return;
+      }
+
+      const mapEl = document.getElementById("nmMapContainer");
+      if (!mapEl) return;
+
+      // India center
+      const map = L.map(mapEl, {
+        center: [22.5, 80.0],
+        zoom: 5,
+        zoomControl: true
+      });
+
+      // OpenStreetMap tiles — no API key required
+      L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          attribution:
+            '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 18
+        }
+      ).addTo(map);
+
+      // Marker color by priority/status
+      function markerColor(priority, status) {
+        if (
+          status &&
+          String(status).toLowerCase() === "rerouted"
+        ) {
+          return "#7c3aed";
+        }
+        const p = String(priority || "").toLowerCase();
+        if (p === "critical") return "#dc2626";
+        if (p === "high")     return "#ea580c";
+        return "#ca8a04";
+      }
+
+      function createIcon(priority, status) {
+        const color = markerColor(priority, status);
+        return L.divIcon({
+          className: "",
+          html: `<div style="
+            width:18px;height:18px;
+            background:${color};
+            border:3px solid #fff;
+            border-radius:50%;
+            box-shadow:0 2px 8px rgba(0,0,0,0.35);
+          "></div>`,
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+          popupAnchor: [0, -12]
+        });
+      }
+
+      const markers = {};
+      let lastUpdateTime = null;
+      let socket = null;
+      let lastUpdateInterval = null;
+
+      function formatPopup(t) {
+        const eta = t.eta_hours != null ? `${t.eta_hours}h` : "—";
+        const statusLabel = t.status || "In Transit";
+        return `
+          <div style="min-width:160px;font-family:sans-serif;">
+            <div style="font-weight:800;font-size:14px;margin-bottom:4px;">
+              ${escapeHtml(t.shipment_id)}
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px;">
+              ${escapeHtml(t.medicine)}
+            </div>
+            <div style="font-size:11px;color:#64748b;margin-bottom:2px;">
+              ${escapeHtml(t.route || "")}
+            </div>
+            <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+              <span style="background:${markerColor(t.priority, t.status)};
+                color:#fff;padding:2px 8px;border-radius:999px;
+                font-size:11px;font-weight:700;">
+                ${escapeHtml(t.priority || "")}
+              </span>
+              <span style="background:#f1f5f9;color:#334155;padding:2px 8px;
+                border-radius:999px;font-size:11px;font-weight:700;">
+                ${escapeHtml(statusLabel)}
+              </span>
+            </div>
+            <div style="margin-top:6px;font-size:12px;color:#334155;">
+              ETA: <strong>${eta}</strong>
+            </div>
+            <div style="margin-top:2px;font-size:11px;color:#94a3b8;">
+              ${escapeHtml(t.origin || "")} → ${escapeHtml(t.destination || "")}
+            </div>
+          </div>
+        `;
+      }
+
+      function placeOrMoveMarker(t) {
+        if (!t.latitude || !t.longitude) return;
+        const latlng = [t.latitude, t.longitude];
+
+        if (markers[t.shipment_id]) {
+          markers[t.shipment_id].setLatLng(latlng);
+          markers[t.shipment_id].setIcon(
+            createIcon(t.priority, t.status)
+          );
+          if (markers[t.shipment_id].getPopup()) {
+            markers[t.shipment_id].getPopup().setContent(formatPopup(t));
+          }
+        } else {
+          const m = L.marker(latlng, {
+            icon: createIcon(t.priority, t.status)
+          })
+            .addTo(map)
+            .bindPopup(formatPopup(t), { maxWidth: 240 });
+
+          markers[t.shipment_id] = m;
+        }
+      }
+
+      function updateLastUpdateDisplay() {
+        const el = document.getElementById("nmLastUpdate");
+        if (!el || !lastUpdateTime) return;
+        const secAgo = Math.round((Date.now() - lastUpdateTime) / 1000);
+        el.textContent = `Last update: ${secAgo}s ago`;
+      }
+
+      // Initial paint from REST API
+      api("/api/tracking/all")
+        .then(result => {
+          const list = result.tracking || [];
+          list.forEach(placeOrMoveMarker);
+
+          if (list.length > 0) {
+            const bounds = list
+              .filter(t => t.latitude && t.longitude)
+              .map(t => [t.latitude, t.longitude]);
+
+            if (bounds.length > 0) {
+              map.fitBounds(bounds, { padding: [60, 60] });
+            }
+          }
+        })
+        .catch(() => {
+          // Non-fatal — live socket will populate markers
+        });
+
+      // Connect Socket.IO for live position updates
+      try {
+        socket = io({
+          transports: ["websocket", "polling"]
+        });
+
+        socket.on("connect", () => {
+          const el = document.getElementById("nmLastUpdate");
+          if (el) el.textContent = "Connected — waiting for update...";
+        });
+
+        socket.on("trackingUpdate", (trackingList) => {
+          lastUpdateTime = Date.now();
+          trackingList.forEach(placeOrMoveMarker);
+          updateLastUpdateDisplay();
+        });
+
+        socket.on("connect_error", () => {
+          const el = document.getElementById("nmLastUpdate");
+          if (el) el.textContent = "Live updates unavailable — showing last known positions.";
+        });
+
+      } catch (e) {
+        const el = document.getElementById("nmLastUpdate");
+        if (el) el.textContent = "Live updates unavailable.";
+      }
+
+      // Update "X sec ago" display every second
+      lastUpdateInterval = setInterval(updateLastUpdateDisplay, 1000);
+
+      // Cleanup — called when leaving Network Map page
+      window._pgMapCleanup = function() {
+        if (socket) {
+          socket.disconnect();
+          socket = null;
+        }
+        if (lastUpdateInterval) {
+          clearInterval(lastUpdateInterval);
+          lastUpdateInterval = null;
+        }
+        try {
+          map.remove();
+        } catch (e) {
+          // map already removed
+        }
+        window._pgMapCleanup = null;
+      };
+
+    }
+
+
+    // ------------------------------------------------
+    // INVENTORY
+    // ------------------------------------------------
+
+    async function loadInventory() {
+
+      setActiveNav(3);
+
+      commandCenterView.style.display =
+        "none";
+
+      pageView.style.display =
+        "block";
+
+      // Clean up map if active
+      if (window._pgMapCleanup) {
+        window._pgMapCleanup();
+      }
 
 
       renderPageShell(
@@ -3570,13 +3867,18 @@ document.addEventListener(
 
     function showRecoveryHistory() {
 
-      setActiveNav(3);
+      setActiveNav(4);
 
       commandCenterView.style.display =
         "none";
 
       pageView.style.display =
         "block";
+
+      // Clean up map if active
+      if (window._pgMapCleanup) {
+        window._pgMapCleanup();
+      }
 
 
       renderPageShell(
@@ -3610,6 +3912,11 @@ document.addEventListener(
 
     // ------------------------------------------------
     // NAVIGATION EVENTS
+    // navItems[0] = Command Center
+    // navItems[1] = Shipments
+    // navItems[2] = Network Map
+    // navItems[3] = Inventory
+    // navItems[4] = Recovery History
     // ------------------------------------------------
 
     navItems[0]
@@ -3626,18 +3933,31 @@ document.addEventListener(
       );
 
 
-    navItems[2]
-      .addEventListener(
-        "click",
-        loadInventory
-      );
+    if (navItems[2]) {
+      navItems[2]
+        .addEventListener(
+          "click",
+          showNetworkMap
+        );
+    }
 
 
-    navItems[3]
-      .addEventListener(
-        "click",
-        showRecoveryHistory
-      );
+    if (navItems[3]) {
+      navItems[3]
+        .addEventListener(
+          "click",
+          loadInventory
+        );
+    }
+
+
+    if (navItems[4]) {
+      navItems[4]
+        .addEventListener(
+          "click",
+          showRecoveryHistory
+        );
+    }
 
   }
 );
