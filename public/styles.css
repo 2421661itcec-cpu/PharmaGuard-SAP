@@ -1957,156 +1957,46 @@ button:disabled {
   text-align: center;
   color: #b91c1c;
   font-size: 14px;
-/* ==================================================
-   CLASSY MODERN MAP PINS & VECTOR MARKERS
-   Replaces crude emojis with elegant vector badges,
-   subtle depth shadows, and radar pulses.
-================================================== */
-
-.nm-marker-wrap {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.nm-marker-wrap:hover {
-  transform: scale(1.18) translateY(-3px);
-  z-index: 9999 !important;
-}
 
-/* 1. State Mega-Warehouse: Deep Navy Sleek Architectural Tile */
-.nm-hub-tile {
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 2px solid #38bdf8;
-  border-radius: 8px;
+/* Zomato-style Map Pins */
+.nm-pin {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.45), 0 0 8px rgba(56, 189, 248, 0.35);
-  color: #38bdf8;
-}
-
-/* 2. Initial Origin Pin: Vibrant Emerald Dispatch Badge */
-.nm-origin-badge {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
-  border: 2.5px solid #ffffff;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.55), 0 2px 6px rgba(0, 0, 0, 0.25);
   color: #ffffff;
-}
-
-/* 3. Final Destination Pin: Crimson Ruby Arrival Beacon */
-.nm-dest-badge {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-  border: 2.5px solid #ffffff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.55), 0 2px 6px rgba(0, 0, 0, 0.25);
-  color: #ffffff;
-}
-
-/* 4. Active Vehicle: Live Moving Vessel with Radar Ping */
-.nm-vehicle-vessel {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 2.5px solid #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  position: relative;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
-}
-
-.nm-vehicle-vessel.critical {
-  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-}
-
-.nm-vehicle-vessel.high {
-  background: linear-gradient(135deg, #f97316 0%, #c2410c 100%);
-}
-
-.nm-vehicle-vessel.medium {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-}
-
-.nm-vehicle-vessel.rerouted {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-}
-
-/* Radar pulse wave effect */
-.nm-radar-ring {
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  opacity: 0.8;
-  animation: nm-radar-ping 2.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
-  pointer-events: none;
-}
-
-@keyframes nm-radar-ping {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.9;
-  }
-  70%, 100% {
-    transform: scale(2.3);
-    opacity: 0;
-  }
-}
-
-/* Sleek Floating Micro-Pills */
-.nm-pin-tag {
-  margin-top: 3px;
-  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  padding: 2px 6px;
-  border-radius: 999px;
-  text-transform: uppercase;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  pointer-events: none;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  border: 2px solid #ffffff;
+  transition: transform 0.2s ease;
 }
 
-.nm-tag-origin {
-  background: #047857;
-  color: #ffffff;
+.nm-pin:hover {
+  transform: scale(1.15);
 }
 
-.nm-tag-dest {
-  background: #b91c1c;
-  color: #ffffff;
+.nm-origin-pin {
+  background: #16a34a;
 }
 
-.nm-tag-vehicle {
-  background: #0f172a;
-  color: #38bdf8;
-  border-color: #334155;
-  font-size: 8.5px;
+.nm-dest-pin {
+  background: #dc2626;
 }
 
+.nm-hub-pin {
+  background: #0f5bd3;
+}
+
+.nm-vehicle-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
 
 
 /* Leaflet popup override — keep consistent with PharmaGuard font */

@@ -3276,39 +3276,30 @@ document.addEventListener(
             <div id="nmMapContainer" class="nm-map-container"></div>
             <div class="nm-legend">
               <div class="nm-legend-item">
-                <span class="nm-origin-badge" style="width:18px;height:18px;box-shadow:none;border-width:1.5px;">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/></svg>
-                </span>
-                <span>Origin Hub</span>
+                <span class="nm-legend-dot nm-dot-origin"></span> 🟢 Origin Hub
               </div>
               <div class="nm-legend-item">
-                <span class="nm-dest-badge" style="width:18px;height:18px;box-shadow:none;border-width:1.5px;">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3"/></svg>
-                </span>
-                <span>Destination Depot</span>
+                <span class="nm-legend-dot nm-dot-dest"></span> 🏁 Destination Depot
               </div>
               <div class="nm-legend-item">
-                <span class="nm-hub-tile" style="width:18px;height:18px;border-radius:4px;box-shadow:none;border-width:1.5px;">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M3 21h18M3 7v14M21 7v14M3 7l9-4 9 4"/></svg>
-                </span>
-                <span>State Mega-Warehouse</span>
+                <span class="nm-legend-dot nm-dot-hub"></span> 🏢 State Mega-Warehouse
+              </div>
+              <div class="nm-legend-item" style="gap:4px;">
+                <span style="display:inline-block;width:18px;height:3px;background:#2563eb;border-radius:2px;"></span> Active Route
+              </div>
+              <div class="nm-legend-item" style="gap:4px;">
+                <span style="display:inline-block;width:18px;height:3px;background:#7c3aed;border-radius:2px;"></span> Rerouted Detour
               </div>
               <div class="nm-legend-item">
-                <span class="nm-vehicle-vessel critical" style="width:18px;height:18px;box-shadow:none;border-width:1.5px;">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="1" y="3" width="15" height="13"/></svg>
-                </span>
-                <span>Moving Fleet</span>
+                <span class="nm-legend-dot nm-dot-critical"></span> Critical
               </div>
-              <div class="nm-legend-item" style="gap:5px;">
-                <span style="display:inline-block;width:18px;height:3px;background:#2563eb;border-radius:2px;"></span>
-                <span>Active Route</span>
+              <div class="nm-legend-item">
+                <span class="nm-legend-dot nm-dot-high"></span> High
               </div>
-              <div class="nm-legend-item" style="gap:5px;">
-                <span style="display:inline-block;width:18px;height:3px;background:#7c3aed;border-radius:2px;"></span>
-                <span>Detour Path</span>
+              <div class="nm-legend-item">
+                <span class="nm-legend-dot nm-dot-medium"></span> Medium
               </div>
             </div>
-
           </div>
         `
       );
@@ -3400,99 +3391,85 @@ document.addEventListener(
         return "#ca8a04"; // yellow/gold
       }
 
-      // 1. Classy Moving Vehicle Vector Pin
-      function createVehicleIcon(priority, status, medicine, shipment_id) {
-        const isRerouted = status && String(status).toLowerCase() === "rerouted";
-        const p = String(priority || "").toLowerCase();
-        const pClass = isRerouted ? "rerouted" : (p === "critical" ? "critical" : (p === "high" ? "high" : "medium"));
-        const ringColor = isRerouted ? "#c084fc" : (p === "critical" ? "#fda4af" : (p === "high" ? "#fed7aa" : "#7dd3fc"));
-
+      // 1. Vehicle moving marker icon
+      function createVehicleIcon(priority, status, medicine) {
+        const color = markerColor(priority, status);
         return L.divIcon({
           className: "",
           html: `
-            <div class="nm-marker-wrap">
-              <div class="nm-vehicle-vessel ${pClass}">
-                <div class="nm-radar-ring" style="color:${ringColor};"></div>
-                <!-- Premium Freight Truck SVG -->
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="1" y="3" width="15" height="13"/>
-                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
-                  <circle cx="5.5" cy="18.5" r="2.5"/>
-                  <circle cx="18.5" cy="18.5" r="2.5"/>
-                </svg>
-              </div>
-              <span class="nm-pin-tag nm-tag-vehicle">${escapeHtml(shipment_id || "FLEET")}</span>
+            <div class="nm-vehicle-pin" style="
+              width: 32px; height: 32px;
+              background: ${color};
+              box-shadow: 0 3px 12px rgba(0,0,0,0.45);
+              border-radius: 50%;
+              display: flex; align-items: center; justify-content: center;
+              color: #ffffff; font-size: 15px; cursor: pointer;
+            ">
+              🚚
             </div>
           `,
-          iconSize: [42, 50],
-          iconAnchor: [21, 20],
-          popupAnchor: [0, -22]
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -18]
         });
       }
 
-      // 2. Classy Initial Origin Dispatch Pin
+      // 2. Initial Origin Point Icon
       function createOriginIcon() {
         return L.divIcon({
           className: "",
           html: `
-            <div class="nm-marker-wrap">
-              <div class="nm-origin-badge">
-                <!-- Outbound Warehouse Dispatch SVG -->
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-              </div>
-              <span class="nm-pin-tag nm-tag-origin">ORIGIN</span>
+            <div class="nm-pin nm-origin-pin" style="
+              width: 28px; height: 28px;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 14px; cursor: pointer;
+            ">
+              🟢
             </div>
           `,
-          iconSize: [42, 50],
-          iconAnchor: [21, 20],
-          popupAnchor: [0, -22]
-        });
-      }
-
-      // 3. Classy Final Destination Medical Depot Pin
-      function createDestinationIcon() {
-        return L.divIcon({
-          className: "",
-          html: `
-            <div class="nm-marker-wrap">
-              <div class="nm-dest-badge">
-                <!-- Arrival Target / Hospital Flag SVG -->
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                  <line x1="4" y1="22" x2="4" y2="15"/>
-                </svg>
-              </div>
-              <span class="nm-pin-tag nm-tag-dest">DEST</span>
-            </div>
-          `,
-          iconSize: [42, 50],
-          iconAnchor: [21, 20],
-          popupAnchor: [0, -22]
-        });
-      }
-
-      // 4. Classy State Mega-Warehouse Architectural Pin
-      function createHubIcon() {
-        return L.divIcon({
-          className: "",
-          html: `
-            <div class="nm-marker-wrap">
-              <div class="nm-hub-tile">
-                <!-- Architectural Logistics Hub SVG -->
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 21h18M3 7v14M21 7v14M3 7l9-4 9 4M9 21V12h6v9"/>
-                </svg>
-              </div>
-            </div>
-          `,
-          iconSize: [30, 30],
-          iconAnchor: [15, 15],
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
           popupAnchor: [0, -16]
         });
       }
 
+      // 3. Final Destination Point Icon
+      function createDestinationIcon() {
+        return L.divIcon({
+          className: "",
+          html: `
+            <div class="nm-pin nm-dest-pin" style="
+              width: 28px; height: 28px;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 14px; cursor: pointer;
+            ">
+              🏁
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+          popupAnchor: [0, -16]
+        });
+      }
+
+      // 4. State Mega-Warehouse Hub Icon
+      function createHubIcon() {
+        return L.divIcon({
+          className: "",
+          html: `
+            <div class="nm-pin nm-hub-pin" style="
+              width: 24px; height: 24px;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 12px; cursor: pointer; opacity: 0.9;
+            ">
+              🏢
+            </div>
+          `,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+          popupAnchor: [0, -14]
+        });
+      }
 
       const vehicleMarkers = {};
       const routePolylines = {};
@@ -3679,13 +3656,13 @@ document.addEventListener(
 
         if (vehicleMarkers[t.shipment_id]) {
           vehicleMarkers[t.shipment_id].setLatLng(latlng);
-          vehicleMarkers[t.shipment_id].setIcon(createVehicleIcon(t.priority, t.status, t.medicine, t.shipment_id));
+          vehicleMarkers[t.shipment_id].setIcon(createVehicleIcon(t.priority, t.status, t.medicine));
           if (vehicleMarkers[t.shipment_id].getPopup()) {
             vehicleMarkers[t.shipment_id].getPopup().setContent(formatVehiclePopup(t));
           }
         } else {
           const m = L.marker(latlng, {
-            icon: createVehicleIcon(t.priority, t.status, t.medicine, t.shipment_id)
+            icon: createVehicleIcon(t.priority, t.status, t.medicine)
           })
             .addTo(vehicleMarkersGroup)
             .bindPopup(formatVehiclePopup(t), { maxWidth: 280 });
@@ -3698,12 +3675,11 @@ document.addEventListener(
       function renderStateWarehouses(warehousesList) {
         (warehousesList || []).forEach(wh => {
           if (!wh.lat || !wh.lng) return;
-          L.marker([wh.lat, wh.lng], { icon: createHubIcon(wh) })
+          L.marker([wh.lat, wh.lng], { icon: createHubIcon() })
             .addTo(stateHubsGroup)
             .bindPopup(formatWarehousePopup(wh), { maxWidth: 280 });
         });
       }
-
 
       function updateLastUpdateDisplay() {
         const el = document.getElementById("nmLastUpdate");
