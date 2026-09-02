@@ -47,15 +47,16 @@ const shipments = [
     origin_hub: "Mumbai Coastal Central Hub",
     origin_warehouse: "West India Gateway Pharma Mega-Warehouse (Bhiwandi Logistics Park, Mumbai)",
     origin_coords: [19.0760, 72.8777],
-    destination: "Delhi",
-    destination_hub: "Delhi Apex Central Pharma Hub",
-    destination_warehouse: "Northern National Pharma Mega-Warehouse (Okhla Phase-III, New Delhi)",
-    destination_coords: [28.6139, 77.2090],
-    route: "Mumbai → Delhi",
+    destination: "Pune",
+    destination_hub: "Pune Western Health Depot",
+    destination_warehouse: "Maharashtra Apex Vaccine & Trauma Center (Pimpri-Chinchwad, Pune)",
+    destination_coords: [18.5204, 73.8567],
+    route: "Mumbai → Navi Mumbai → Pune",
     status: "In Transit",
     lat: 19.0760,
     lng: 72.8777
   },
+
   {
     id: "SH004",
     medicine: "Antibiotics",

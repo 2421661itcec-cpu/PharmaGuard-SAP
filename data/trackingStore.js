@@ -293,7 +293,15 @@ const waypointSets = {
     [30.9010, 75.8573]    // Ludhiana
   ],
 
-  // SH003 — Mumbai → Delhi (original)
+  // SH003 — Mumbai → Navi Mumbai → Pune (vaccine deficit fulfillment)
+  "Mumbai → Navi Mumbai → Pune": [
+    [19.0760, 72.8777],   // Mumbai
+    [18.9894, 73.1175],   // Navi Mumbai / Panvel
+    [18.7546, 73.4062],   // Lonavala Western Ghats
+    [18.5204, 73.8567]    // Pune
+  ],
+
+  // SH003 — Mumbai → Delhi (original alternative)
   "Mumbai → Delhi": [
     [19.0760, 72.8777],   // Mumbai
     [22.3072, 73.1812],   // Vadodara
@@ -301,6 +309,7 @@ const waypointSets = {
     [26.9124, 75.7873],   // Jaipur
     [28.6139, 77.2090]    // Delhi
   ],
+
 
   // SH004 — Ambala → Amritsar (original)
   "Ambala → Amritsar": [

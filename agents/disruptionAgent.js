@@ -139,6 +139,131 @@ function extractLocation(disruptionText) {
   return "Ambala";
 }
 
+// --------------------------------------------------
+// DEMAND & SHORTAGE-DRIVEN DESTINATION ENGINE
+// Resolves destination based on:
+// 1. Emergency/Disaster Casualty Surges (floods, landslides, accidents)
+// 2. Critical Stock Deficiencies (lowest days of inventory remaining)
+// NEVER dumps surplus into Delhi.
+// --------------------------------------------------
+function determineSupplyChainFlow(disruptedLocation, disruptionText) {
+  const lower = (disruptionText || "").toLowerCase();
+  const locLower = (disruptedLocation || "").toLowerCase();
+  const inventory = require("../data/inventory");
+
+  // Check if this disruption is an emergency/disaster event requiring surge relief supplies
+  const isDisasterSurge =
+    lower.includes("flood") ||
+    lower.includes("flooding") ||
+    lower.includes("landslide") ||
+    lower.includes("cyclone") ||
+    lower.includes("storm") ||
+    lower.includes("snowstorm") ||
+    lower.includes("accident") ||
+    lower.includes("emergency") ||
+    lower.includes("outbreak") ||
+    lower.includes("epidemic") ||
+    lower.includes("collapse");
+
+  if (isDisasterSurge) {
+    // DISASTER RELIEF SURGE MODE:
+    // Destination is the affected city facing acute medical emergency!
+    const destCity = disruptedLocation;
+
+    // Pick the closest strategic surplus Mega-Warehouse to rush emergency supplies
+    const nearbySurplusOrigins = {
+      // North
+      "dehradun": "Ambala", "haridwar": "Ambala", "rishikesh": "Ambala", "roorkee": "Ambala", "nainital": "Lucknow",
+      "shimla": "Chandigarh", "manali": "Chandigarh", "dharamshala": "Chandigarh", "kullu": "Chandigarh",
+      "jammu": "Ludhiana", "srinagar": "Ludhiana", "leh": "Chandigarh",
+      "amritsar": "Ludhiana", "jalandhar": "Ludhiana", "patiala": "Chandigarh", "bathinda": "Ludhiana",
+      // UP & Central
+      "varanasi": "Lucknow", "prayagraj": "Lucknow", "allahabad": "Lucknow", "gorakhpur": "Lucknow", "ayodhya": "Lucknow",
+      "kanpur": "Lucknow", "agra": "Lucknow", "meerut": "Lucknow", "bareilly": "Lucknow", "aligarh": "Lucknow",
+      "indore": "Bhopal", "gwalior": "Bhopal", "jabalpur": "Bhopal", "ujjain": "Bhopal", "sagar": "Bhopal",
+      "raipur": "Bhopal", "bilaspur": "Bhopal", "bhilai": "Bhopal",
+      // Bihar & Jharkhand & East
+      "patna": "Kolkata", "gaya": "Kolkata", "muzaffarpur": "Kolkata", "bhagalpur": "Kolkata",
+      "ranchi": "Kolkata", "jamshedpur": "Kolkata", "dhanbad": "Kolkata", "bokaro": "Kolkata",
+      "bhubaneswar": "Kolkata", "cuttack": "Bhubaneswar", "rourkela": "Kolkata", "puri": "Bhubaneswar",
+      "guwahati": "Kolkata", "silchar": "Guwahati", "dibrugarh": "Guwahati", "shillong": "Guwahati",
+      // West
+      "nashik": "Mumbai", "pune": "Mumbai", "nagpur": "Mumbai", "aurangabad": "Mumbai", "solapur": "Mumbai", "kolhapur": "Mumbai",
+      "surat": "Ahmedabad", "vadodara": "Ahmedabad", "rajkot": "Ahmedabad", "bhavnagar": "Ahmedabad", "vapi": "Mumbai",
+      "jaipur": "Ahmedabad", "jodhpur": "Ahmedabad", "kota": "Ahmedabad", "udaipur": "Ahmedabad",
+      // South
+      "mysore": "Bangalore", "mysuru": "Bangalore", "mangalore": "Bangalore", "hubli": "Bangalore", "belgaum": "Bangalore",
+      "coimbatore": "Chennai", "madurai": "Chennai", "trichy": "Chennai", "salem": "Chennai",
+      "kochi": "Bangalore", "thiruvananthapuram": "Bangalore", "kozhikode": "Bangalore", "thrissur": "Bangalore",
+      "warangal": "Hyderabad", "visakhapatnam": "Hyderabad", "vijayawada": "Hyderabad", "tirupati": "Chennai",
+      "goa": "Mumbai"
+    };
+
+    const originCity = nearbySurplusOrigins[locLower] || "Mumbai";
+
+    return {
+      mode: "EMERGENCY_DISASTER_SURGE",
+      origin: originCity,
+      destination: destCity,
+      medicine: "Emergency Trauma & Clinical Critical Care",
+      priority: "Critical",
+      flowReason: `Urgent disaster relief surge: Rushing trauma antibiotics, IV fluids, and emergency meds to treat casualties in ${destCity}.`,
+      route: `${originCity} → Emergency Disaster Relief Corridor → ${destCity}`
+    };
+  }
+
+  // SHORTAGE & CRITICAL DEFICIT FULFILLMENT MODE:
+  // Find which regional health center has the highest stock deficiency / lowest days of supply
+  const candidates = inventory
+    .filter(item => {
+      const loc = item.location.toLowerCase();
+      if (loc === locLower) return false;
+      if (loc === "delhi") return false; // Exclude Delhi (massive surplus producer)
+      return item.daily_demand && item.daily_demand > 0;
+    })
+    .map(item => {
+      const required = item.safety_stock + item.daily_demand;
+      const deficit = Math.max(0, required - item.current_stock);
+      const daysOfCoverage = parseFloat((item.current_stock / item.daily_demand).toFixed(1));
+      return {
+        location: item.location,
+        medicine: item.medicine,
+        current_stock: item.current_stock,
+        safety_stock: item.safety_stock,
+        daily_demand: item.daily_demand,
+        deficit,
+        daysOfCoverage
+      };
+    });
+
+  candidates.sort((a, b) => {
+    if (a.deficit > 0 && b.deficit <= 0) return -1;
+    if (b.deficit > 0 && a.deficit <= 0) return 1;
+    return a.daysOfCoverage - b.daysOfCoverage;
+  });
+
+  const bestDeficit = candidates.length > 0 ? candidates[0] : {
+    location: "Chandigarh",
+    medicine: "Insulin",
+    current_stock: 110,
+    deficit: 30,
+    daysOfCoverage: 2.7
+  };
+
+  const originCity = disruptedLocation;
+  const destCity = bestDeficit.location;
+
+  return {
+    mode: "CRITICAL_DEFICIT_FULFILLMENT",
+    origin: originCity,
+    destination: destCity,
+    medicine: bestDeficit.medicine || "Insulin",
+    priority: bestDeficit.deficit > 0 ? "Critical" : "High",
+    flowReason: `Stockout prevention routing: Destination ${destCity} has only ${bestDeficit.daysOfCoverage} days of supply remaining (stock: ${bestDeficit.current_stock}, deficit: ${bestDeficit.deficit} units).`,
+    route: `${originCity} → Arterial Supply Lifeline → ${destCity}`
+  };
+}
+
 function detectDisruption(disruption) {
   const disruptionText = (disruption || "").trim() || "Supply chain transit disruption";
   const lowerText = disruptionText.toLowerCase();
@@ -160,79 +285,42 @@ function detectDisruption(disruption) {
     );
   });
 
-  // If no shipment matches this location (e.g. user entered Dehradun, Shimla, Varanasi, Ranchi, Indore, etc.),
-  // dynamically attach an active pharma corridor passing through that hub.
+  // If no shipment matches this location, dynamically determine flow based on
+  // Emergency Disaster Surge OR Critical Stock Deficiency
   if (affectedShipments.length === 0) {
-    const { getWarehouseByCity, stateWarehouses } = require("../data/warehouses");
+    const { getWarehouseByCity } = require("../data/warehouses");
     const dynamicId = `SH-${disruptedLocation.slice(0, 3).toUpperCase()}${Math.floor(100 + Math.random() * 900)}`;
 
-    // Regional pairing across Indian states
-    const regionalPairings = {
-      // Uttarakhand & Himachal & J&K
-      "dehradun": "Delhi", "haridwar": "Delhi", "rishikesh": "Delhi", "roorkee": "Delhi", "nainital": "Delhi",
-      "shimla": "Chandigarh", "manali": "Chandigarh", "dharamshala": "Chandigarh", "kullu": "Chandigarh", "solan": "Chandigarh",
-      "jammu": "Ludhiana", "srinagar": "Delhi", "leh": "Chandigarh",
+    const flow = determineSupplyChainFlow(disruptedLocation, disruptionText);
 
-      // Uttar Pradesh & Central
-      "lucknow": "Delhi", "kanpur": "Lucknow", "agra": "Delhi", "varanasi": "Lucknow", "prayagraj": "Lucknow",
-      "allahabad": "Lucknow", "meerut": "Delhi", "bareilly": "Lucknow", "aligarh": "Delhi", "gorakhpur": "Lucknow", "jhansi": "Lucknow", "ayodhya": "Lucknow",
-      "bhopal": "Delhi", "indore": "Bhopal", "gwalior": "Bhopal", "jabalpur": "Bhopal", "ujjain": "Indore", "sagar": "Bhopal",
-      "raipur": "Bhopal", "bilaspur": "Raipur", "durg": "Raipur", "bhilai": "Raipur",
+    const originWh = getWarehouseByCity(flow.origin);
+    const destWh = getWarehouseByCity(flow.destination);
 
-      // Bihar & Jharkhand
-      "patna": "Kolkata", "ranchi": "Kolkata", "jamshedpur": "Kolkata", "dhanbad": "Kolkata", "bokaro": "Ranchi", "gaya": "Patna", "muzaffarpur": "Patna",
-
-      // Maharashtra & Gujarat
-      "mumbai": "Pune", "pune": "Mumbai", "nashik": "Mumbai", "nagpur": "Mumbai", "aurangabad": "Mumbai", "solapur": "Pune", "kolhapur": "Pune",
-      "ahmedabad": "Mumbai", "surat": "Mumbai", "vadodara": "Ahmedabad", "rajkot": "Ahmedabad", "bhavnagar": "Ahmedabad", "vapi": "Mumbai",
-
-      // Rajasthan
-      "jaipur": "Delhi", "jodhpur": "Jaipur", "kota": "Jaipur", "bikaner": "Jaipur", "ajmer": "Jaipur", "udaipur": "Jaipur",
-
-      // Karnataka & South
-      "bangalore": "Chennai", "bengaluru": "Chennai", "mysore": "Bangalore", "mysuru": "Bangalore", "hubli": "Bangalore", "mangalore": "Bangalore", "belgaum": "Bangalore",
-      "chennai": "Bangalore", "coimbatore": "Chennai", "madurai": "Chennai", "trichy": "Chennai", "salem": "Chennai", "tirunelveli": "Chennai",
-      "kochi": "Bangalore", "thiruvananthapuram": "Kochi", "trivandrum": "Kochi", "kozhikode": "Kochi", "thrissur": "Kochi",
-      "hyderabad": "Bangalore", "warangal": "Hyderabad", "visakhapatnam": "Hyderabad", "vizag": "Hyderabad", "vijayawada": "Hyderabad", "tirupati": "Chennai",
-
-      // Odisha & North East & Goa
-      "bhubaneswar": "Kolkata", "cuttack": "Bhubaneswar", "rourkela": "Bhubaneswar", "puri": "Bhubaneswar",
-      "guwahati": "Kolkata", "silchar": "Guwahati", "dibrugarh": "Guwahati", "shillong": "Guwahati", "agartala": "Kolkata",
-      "goa": "Mumbai", "panaji": "Mumbai"
-    };
-
-    const pairedDestination = regionalPairings[locLower] || "Delhi";
-
-    const originWh = getWarehouseByCity(disruptedLocation);
-    const destWh = getWarehouseByCity(pairedDestination);
-
-    const coords = getCoordinates(disruptedLocation);
-    const destCoords = getCoordinates(pairedDestination);
-
-    const dynamicRoute = `${disruptedLocation} → Regional Logistics Corridor → ${pairedDestination}`;
-
+    const coords = getCoordinates(flow.origin);
+    const destCoords = getCoordinates(flow.destination);
 
     // Reuse or create dynamic shipment
-    const existingDyn = shipments.find(s => s.origin === disruptedLocation);
+    const existingDyn = shipments.find(s => s.origin === flow.origin && s.destination === flow.destination);
     if (existingDyn) {
       affectedShipments = [existingDyn];
     } else {
       const dynamicShipment = {
         id: dynamicId,
-        medicine: "Critical Oncology & Vaccines",
-        priority: "Critical",
-        origin: disruptedLocation,
-        origin_hub: originWh ? originWh.hub_name : `${disruptedLocation} State Central Hub`,
-        origin_warehouse: originWh ? `${originWh.warehouse_name} (${originWh.location_address})` : `${disruptedLocation} Strategic Medical Depot`,
+        medicine: flow.medicine,
+        priority: flow.priority,
+        origin: flow.origin,
+        origin_hub: originWh ? originWh.hub_name : `${flow.origin} Strategic Supply Mega-Hub`,
+        origin_warehouse: originWh ? `${originWh.warehouse_name} (${originWh.location_address})` : `${flow.origin} Regional Logistics Depot`,
         origin_coords: coords,
-        destination: pairedDestination,
-        destination_hub: destWh ? destWh.hub_name : `${pairedDestination} Regional Apex Depot`,
-        destination_warehouse: destWh ? `${destWh.warehouse_name} (${destWh.location_address})` : `${pairedDestination} Strategic Medical Depot`,
+        destination: flow.destination,
+        destination_hub: destWh ? destWh.hub_name : `${flow.destination} Regional Healthcare & Emergency Depot`,
+        destination_warehouse: destWh ? `${destWh.warehouse_name} (${destWh.location_address})` : `${flow.destination} Clinical Buffer Facility`,
         destination_coords: destCoords,
-        route: dynamicRoute,
+        route: flow.route,
         status: "In Transit",
         lat: coords[0],
-        lng: coords[1]
+        lng: coords[1],
+        destination_rationale: flow.flowReason
       };
 
       shipments.push(dynamicShipment);
@@ -240,6 +328,7 @@ function detectDisruption(disruption) {
       affectedShipments = [dynamicShipment];
     }
   }
+
 
 
   // Determine severity based on disruption text and affected priority
