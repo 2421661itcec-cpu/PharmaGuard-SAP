@@ -16,14 +16,12 @@
     href="/styles.css"
   >
 
-  <!-- Leaflet CSS — loaded from CDN, no API key needed -->
+  <!-- Leaflet CSS & JS — hosted locally in public/leaflet for guaranteed offline/online availability -->
   <link
     rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
+    href="/leaflet/leaflet.css"
   >
-
+  <script src="/leaflet/leaflet.js"></script>
 </head>
 
 <body>
@@ -1237,13 +1235,6 @@
 
   </div>
 
-
-  <!-- Leaflet JS — loaded from CDN -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN2GQnc="
-    crossorigin=""
-  ></script>
 
   <!-- Socket.IO client — served automatically by socket.io -->
   <script src="/socket.io/socket.io.js"></script>
