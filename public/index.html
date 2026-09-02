@@ -16,12 +16,21 @@
     href="/styles.css"
   >
 
-  <!-- Leaflet CSS & JS — hosted locally in public/leaflet for guaranteed offline/online availability -->
+  <!-- Leaflet CSS & JS — local first with automatic CDN fallback -->
   <link
     rel="stylesheet"
     href="/leaflet/leaflet.css"
   >
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+  >
   <script src="/leaflet/leaflet.js"></script>
+  <script>
+    if (typeof L === "undefined") {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"><\/script>');
+    }
+  </script>
 </head>
 
 <body>

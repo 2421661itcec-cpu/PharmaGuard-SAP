@@ -3298,11 +3298,23 @@ document.addEventListener(
     }
 
 
-    function initNetworkMap() {
+    function initNetworkMap(attempt = 0) {
 
       // Guard: Leaflet must be loaded
       if (typeof L === "undefined") {
         const container = document.getElementById("nmMapContainer");
+        if (container && attempt === 0) {
+          container.innerHTML =
+            '<div class="pg4-loading" style="padding:60px 20px; text-align:center; color:#64748b;">Initializing live map network...</div>';
+        }
+
+        if (attempt < 25) {
+          setTimeout(() => {
+            initNetworkMap(attempt + 1);
+          }, 120);
+          return;
+        }
+
         if (container) {
           container.innerHTML =
             '<div class="pg4-error" style="padding:40px;">Map library unavailable. The rest of PharmaGuard continues to work normally.</div>';
@@ -3312,6 +3324,7 @@ document.addEventListener(
 
       const mapEl = document.getElementById("nmMapContainer");
       if (!mapEl) return;
+      mapEl.innerHTML = "";
 
       // India center
       const map = L.map(mapEl, {
