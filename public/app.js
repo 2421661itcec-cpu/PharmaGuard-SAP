@@ -4185,12 +4185,182 @@ document.addEventListener(
 
 
     // ------------------------------------------------
+    // MEDICINE MASTER DATABASE
+    // ------------------------------------------------
+
+    async function loadMedicineMaster() {
+
+      setActiveNav(5);
+
+      commandCenterView.style.display =
+        "none";
+
+      pageView.style.display =
+        "block";
+
+      // Clean up map if active
+      if (window._pgMapCleanup) {
+        window._pgMapCleanup();
+        window._pgMapCleanup = null;
+      }
+
+      try {
+
+        const result =
+          await api("/api/medicines");
+
+        const list =
+          result.medicines || [];
+
+        renderPageShell(
+          "CLINICAL PHARMACOPEIA",
+          "Medicine Master Database",
+          "FDA & RxNorm aligned clinical monographs, cold-chain thermal excursion tolerances, and bio-equivalent generic substitutes.",
+          `
+            <div class="pg4-table-card">
+
+              <div style="padding:16px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div>
+                  <div style="font-weight:800;font-size:14px;color:#1e293b;">Active Formulations & Clinical Monograph Catalog</div>
+                  <div style="font-size:12px;color:#64748b;margin-top:2px;">Thermal stability tracking, FEFO batch guidelines, and substitution mapping</div>
+                </div>
+                <div style="display:flex;gap:8px;font-size:11px;font-weight:700;">
+                  <span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:3px 8px;border-radius:6px;">Tier 1: Life-Critical</span>
+                  <span style="background:#fff7ed;color:#c2410c;border:1px solid #ffedd5;padding:3px 8px;border-radius:6px;">Tier 2: Urgent</span>
+                  <span style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;padding:3px 8px;border-radius:6px;">Tier 3: Standard</span>
+                </div>
+              </div>
+
+              ${
+                list.length > 0
+                  ? `
+                    <table class="pg4-table">
+                      <thead>
+                        <tr>
+                          <th>Drug Code & Formulation</th>
+                          <th>Category & Clinical Indication</th>
+                          <th>Criticality Tier</th>
+                          <th>Storage & Thermal Limit</th>
+                          <th>Approved Generic Substitutes</th>
+                          <th>Regulatory Schedule</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${list
+                          .map((med) => {
+                            const tierColor =
+                              med.criticality_tier === "TIER_1_LIFE_CRITICAL"
+                                ? "#b91c1c"
+                                : med.criticality_tier === "TIER_2_URGENT"
+                                ? "#ea580c"
+                                : "#15803d";
+                            const tierBg =
+                              med.criticality_tier === "TIER_1_LIFE_CRITICAL"
+                                ? "#fef2f2"
+                                : med.criticality_tier === "TIER_2_URGENT"
+                                ? "#fff7ed"
+                                : "#f0fdf4";
+                            const tierLabel =
+                              med.criticality_tier === "TIER_1_LIFE_CRITICAL"
+                                ? "Tier 1: Life-Critical"
+                                : med.criticality_tier === "TIER_2_URGENT"
+                                ? "Tier 2: Urgent"
+                                : "Tier 3: Standard";
+                            const isCold =
+                              med.temp_range_c && med.temp_range_c[0] <= 8;
+
+                            return `
+                              <tr>
+                                <td>
+                                  <div style="font-weight:800;color:#0f5bd3;font-size:13px;">
+                                    ${escapeHtml(med.name)}
+                                  </div>
+                                  <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                                    <code>${escapeHtml(med.id)}</code> • Brands: <em>${escapeHtml((med.brand_names || []).join(", "))}</em>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div style="font-weight:600;font-size:12px;color:#1e293b;">
+                                    ${escapeHtml(med.category)}
+                                  </div>
+                                  <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                                    ${escapeHtml(med.clinical_indication)}
+                                  </div>
+                                </td>
+                                <td>
+                                  <span style="background:${tierBg};color:${tierColor};border:1px solid ${tierColor}33;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;">
+                                    ${escapeHtml(tierLabel)}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div style="font-weight:700;font-size:12px;color:${isCold ? "#0f5bd3" : "#334155"};">
+                                    ${isCold ? "❄️ " : "📦 "}${escapeHtml(med.storage_condition)}
+                                  </div>
+                                  <div style="font-size:11px;color:${isCold ? "#b91c1c" : "#64748b"};font-weight:600;margin-top:2px;">
+                                    Max Excursion: <strong>${med.max_unrefrigerated_hours} hours</strong>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div style="font-size:11px;line-height:1.4;">
+                                    ${(med.approved_substitutes || [])
+                                      .map((s) => `<div style="color:#0369a1;">• ${escapeHtml(s)}</div>`)
+                                      .join("")}
+                                  </div>
+                                </td>
+                                <td>
+                                  <div style="font-size:11px;color:#334155;font-weight:600;">
+                                    ${escapeHtml(med.regulatory_schedule)}
+                                  </div>
+                                  <div style="font-size:10px;color:#64748b;margin-top:2px;">
+                                    Shelf Life: ${med.shelf_life_months} mos
+                                  </div>
+                                </td>
+                              </tr>
+                            `;
+                          })
+                          .join("")}
+                      </tbody>
+                    </table>
+                  `
+                  : `
+                    <div class="pg4-empty">
+                      No medicine master records available.
+                    </div>
+                  `
+              }
+
+            </div>
+          `
+        );
+
+      } catch (error) {
+
+        renderPageShell(
+          "CLINICAL PHARMACOPEIA",
+          "Medicine Master Database",
+          "Clinical monographs and cold-chain stability records.",
+          `
+            <div class="pg4-table-card">
+              <div class="pg4-error">
+                Unable to load medicine master: ${escapeHtml(error.message)}
+              </div>
+            </div>
+          `
+        );
+
+      }
+
+    }
+
+
+    // ------------------------------------------------
     // NAVIGATION EVENTS
     // navItems[0] = Command Center
     // navItems[1] = Shipments
     // navItems[2] = Network Map
     // navItems[3] = Inventory
     // navItems[4] = Recovery History
+    // navItems[5] = Medicine Master
     // ------------------------------------------------
 
     navItems[0]
@@ -4233,5 +4403,15 @@ document.addEventListener(
         );
     }
 
+
+    if (navItems[5]) {
+      navItems[5]
+        .addEventListener(
+          "click",
+          loadMedicineMaster
+        );
+    }
+
   }
 );
+

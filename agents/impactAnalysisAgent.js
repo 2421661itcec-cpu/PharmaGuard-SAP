@@ -1,5 +1,6 @@
 const shipments = require("../data/shipments");
 const inventory = require("../data/inventory");
+const { getMedicineByName } = require("../data/medicines");
 
 function analyzeImpact(disruptionResult) {
   const affectedShipmentIds = disruptionResult.affected_shipments || [];
@@ -9,16 +10,23 @@ function analyzeImpact(disruptionResult) {
     affectedShipmentIds.includes(shipment.id)
   );
 
-  // Analyze each affected shipment
+  // Analyze each affected shipment with clinical Medicine Master integration
   const analyzedShipments = affectedShipments.map((shipment) => {
+    const medSpec = getMedicineByName(shipment.medicine);
+    const isColdChain = medSpec ? medSpec.temp_range_c[0] <= 8 : false;
+    const maxThermalHours = medSpec ? medSpec.max_unrefrigerated_hours : 24;
+    const substitutes = medSpec ? medSpec.approved_substitutes : [];
+
     let impactLevel = "MEDIUM";
     let delayRisk = "MEDIUM";
     let risk = "Potential delivery delay";
 
-    if (shipment.priority === "Critical") {
+    if (shipment.priority === "Critical" || (medSpec && medSpec.criticality_tier === "TIER_1_LIFE_CRITICAL")) {
       impactLevel = "CRITICAL";
       delayRisk = "CRITICAL";
-      risk = "Critical medicine shipment may be delayed";
+      risk = isColdChain
+        ? `Critical cold-chain biologic (${shipment.medicine}) at severe spoilage risk beyond ${maxThermalHours}h`
+        : "Critical life-saving medicine shipment delayed";
     } else if (shipment.priority === "High") {
       impactLevel = "HIGH";
       delayRisk = "HIGH";
@@ -31,6 +39,7 @@ function analyzeImpact(disruptionResult) {
         item.location === shipment.destination &&
         item.medicine === shipment.medicine
     );
+
 
     let inventoryRisk = "LOW";
     let daysOfCoverage = null;
@@ -77,9 +86,16 @@ function analyzeImpact(disruptionResult) {
         ? Number(daysOfCoverage.toFixed(1))
         : null,
 
+      clinical_tier: medSpec ? medSpec.criticality_tier : "TIER_2_URGENT",
+      storage_condition: medSpec ? medSpec.storage_condition : "Controlled Room Temperature",
+      cold_chain_required: isColdChain,
+      max_thermal_hours: maxThermalHours,
+      approved_substitutes: substitutes,
+
       risk
     };
   });
+
 
   // Get unique affected destinations
   const affectedDestinations = [

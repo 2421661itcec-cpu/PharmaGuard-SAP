@@ -22,6 +22,9 @@ const pharmaGuardRoutes =
 const trackingRoutes =
   require("./routes/trackingRoutes");
 
+const medicineRoutes =
+  require("./routes/medicineRoutes");
+
 const shipments =
   require("./data/shipments");
 
@@ -80,6 +83,11 @@ app.use(
 app.use(
   "/api/tracking",
   trackingRoutes
+);
+
+app.use(
+  "/api/medicines",
+  medicineRoutes
 );
 
 
