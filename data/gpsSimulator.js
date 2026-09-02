@@ -108,17 +108,19 @@ function advanceShipment(state, liveShipment) {
 
   // If we've completed all segments, hold at destination
   if (state.segmentIndex >= totalSegments) {
-    const dest = waypoints[waypoints.length - 1];
-
+    // Loop back to origin for continuous demo movement
     updateTrackingState(state.shipment_id, {
-      latitude:  dest[0],
-      longitude: dest[1],
-      speed:     0,
-      timestamp: new Date().toISOString()
+      latitude:     waypoints[0][0],
+      longitude:    waypoints[0][1],
+      speed:        state.speed || 70,
+      segmentIndex: 0,
+      progress:     0.0,
+      timestamp:    new Date().toISOString()
     });
 
     return;
   }
+
 
   const fromWp = waypoints[state.segmentIndex];
   const toWp   = waypoints[state.segmentIndex + 1];
