@@ -528,107 +528,78 @@ function renderImpact(result) {
 
   shipments.forEach(
     shipment => {
+      const isUrgent = Boolean(shipment.is_emergency || shipment.is_deficit || shipment.urgency_tier?.includes("PRIORITY_1") || String(shipment.priority).toLowerCase() === "critical");
 
-      const priority =
-        String(
-          shipment.priority ||
-          shipment.impact_level ||
-          ""
-        ).toLowerCase();
-
-
-      const priorityClass =
-        priority === "critical"
-          ? "priority-critical"
-          : "priority-high";
-
+      const priorityBadge = shipment.urgency_label || (isUrgent ? "🚨 PRIORITY: DEFICIENCY / EMERGENCY" : "ℹ️ LESS PRIOR: ROUTINE BUFFER");
+      const priorityStyle = isUrgent
+        ? "background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:800;"
+        : "background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;font-weight:700;";
 
       const coverage =
         shipment.days_of_inventory_coverage;
-
 
       const coverageText =
         coverage !== undefined && coverage !== null
           ? `${coverage} days`
           : "—";
 
-
       container.innerHTML += `
-
-        <article class="shipment-card">
-
+        <article class="shipment-card" style="border-left: 4px solid ${isUrgent ? '#dc2626' : '#0284c7'};">
           <div class="shipment-top">
-
             <div class="shipment-id">
-              ${escapeHtml(
-                shipment.shipment_id
-              )}
+              ${escapeHtml(shipment.shipment_id)}
             </div>
-
-            <div class="priority-badge ${priorityClass}">
-              ${escapeHtml(
-                shipment.priority ||
-                shipment.impact_level ||
-                "UNKNOWN"
-              )}
+            <div class="priority-badge" style="${priorityStyle}padding:4px 9px;font-size:11px;border-radius:6px;">
+              ${escapeHtml(priorityBadge)}
             </div>
-
           </div>
 
-
-          <div class="shipment-medicine">
-            ${escapeHtml(
-              shipment.medicine
-            )}
+          <div class="shipment-medicine" style="margin-top:6px;">
+            ${escapeHtml(shipment.medicine)}
           </div>
 
-
-          <div class="route">
-            ${escapeHtml(
-              shipment.current_route ||
-              `${shipment.origin || ""} → ${shipment.destination || ""}`
-            )}
+          <div class="route" style="margin:6px 0;">
+            <div style="font-size:13px;font-weight:700;color:#0f172a;">
+              🏁 Final Destination: <span style="color:#0f5bd3;">${escapeHtml(shipment.destination || "—")}</span>
+            </div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:2px;">
+              Corridor: ${escapeHtml(shipment.current_route || `${shipment.origin || ""} → ${shipment.destination || ""}`)}
+            </div>
           </div>
 
+          ${shipment.priority_note ? `
+            <div style="font-size:11.5px;padding:6px 10px;border-radius:6px;margin:8px 0;background:${isUrgent ? '#fff1f2' : '#f0f9ff'};color:${isUrgent ? '#9f1239' : '#0369a1'};border:1px solid ${isUrgent ? '#fecdd3' : '#e0f2fe'};line-height:1.4;">
+              ${escapeHtml(shipment.priority_note)}
+            </div>
+          ` : ""}
 
           <div class="metrics">
-
             <div class="metric">
-              <span>IMPACT</span>
-              <strong>
-                ${escapeHtml(
-                  shipment.impact_level || "—"
-                )}
+              <span>PRIORITY</span>
+              <strong style="color:${isUrgent ? '#b91c1c' : '#0369a1'};">
+                ${isUrgent ? 'CRITICAL (HIGH)' : 'ROUTINE (LESS)'}
               </strong>
             </div>
-
 
             <div class="metric">
               <span>DELAY RISK</span>
               <strong>
-                ${escapeHtml(
-                  shipment.delay_risk || "—"
-                )}
+                ${escapeHtml(shipment.delay_risk || "—")}
               </strong>
             </div>
-
 
             <div class="metric">
-              <span>INVENTORY</span>
+              <span>INVENTORY COVERAGE</span>
               <strong>
-                ${escapeHtml(
-                  coverageText
-                )}
+                ${escapeHtml(coverageText)}
               </strong>
             </div>
-
           </div>
-
         </article>
-
       `;
     }
   );
+
 
 
   if (!shipments.length) {
@@ -768,27 +739,34 @@ function renderScenarios(result) {
         plan.id;
 
 
-      card.innerHTML = `
+      const isUrgent = Boolean(plan.is_emergency || plan.is_deficit || plan.urgency_tier?.includes("PRIORITY_1") || String(plan.priority).toLowerCase() === "critical");
+      const badgeText = plan.urgency_label || (isUrgent ? "🚨 PRIORITY: DEFICIT / EMERGENCY" : "ℹ️ LESS PRIOR: ROUTINE BUFFER");
+      const badgeStyle = isUrgent
+        ? "background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:800;"
+        : "background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;font-weight:700;";
 
-        <div class="rank">
-          RANK #${escapeHtml(
-            plan.rank
-          )}
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div class="rank">
+            RANK #${escapeHtml(plan.rank)}
+          </div>
+          <div class="scenario-urgency-tag" style="${badgeStyle}font-size:10.5px;padding:3px 8px;border-radius:6px;">
+            ${escapeHtml(badgeText)}
+          </div>
         </div>
 
-
-        <h3>
-          ${escapeHtml(
-            plan.name
-          )}
+        <h3 style="margin-bottom:4px;">
+          ${escapeHtml(plan.name)}
         </h3>
 
+        <div style="font-size:12.5px;font-weight:700;color:#0f5bd3;margin-bottom:6px;">
+          🏁 Final Destination: <span>${escapeHtml(plan.destination || "—")}</span>
+        </div>
 
         <div class="scenario-route">
-          ${escapeHtml(
-            plan.route
-          )}
+          ${escapeHtml(plan.route)}
         </div>
+
 
 
         <div class="scenario-metrics">
@@ -999,59 +977,51 @@ function renderSelectedPlan() {
     `;
 
     return;
-  }
-
+  const isUrgent = Boolean(selectedPlan.is_emergency || selectedPlan.is_deficit || selectedPlan.urgency_tier?.includes("PRIORITY_1") || String(selectedPlan.priority).toLowerCase() === "critical");
+  const badgeText = selectedPlan.urgency_label || (isUrgent ? "🚨 PRIORITY: DEFICIT / EMERGENCY" : "ℹ️ LESS PRIOR: ROUTINE BUFFER");
+  const badgeStyle = isUrgent
+    ? "background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:800;"
+    : "background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;font-weight:700;";
 
   container.innerHTML = `
-
     <div class="selected-plan-header">
-
-      <strong>
-        ${escapeHtml(
-          selectedPlan.name
-        )}
-      </strong>
-
-      <span class="selected-plan-id">
-        ${escapeHtml(
-          selectedPlan.id
-        )}
-      </span>
-
+      <div>
+        <strong>
+          ${escapeHtml(selectedPlan.name)}
+        </strong>
+        <span class="selected-plan-id" style="margin-left:6px;">
+          ${escapeHtml(selectedPlan.id)}
+        </span>
+      </div>
+      <div style="${badgeStyle}padding:3px 8px;font-size:11px;border-radius:6px;">
+        ${escapeHtml(badgeText)}
+      </div>
     </div>
 
+    <div style="font-size:12.5px;font-weight:700;color:#0f5bd3;margin:4px 0;">
+      🏁 Final Destination: <span>${escapeHtml(selectedPlan.destination || "—")}</span>
+    </div>
 
     <div class="selected-plan-route">
-      ${escapeHtml(
-        selectedPlan.route
-      )}
+      ${escapeHtml(selectedPlan.route)}
     </div>
-
 
     <div class="scenario-metrics">
-
       <div class="scenario-metric">
-        ETA ${escapeHtml(
-          selectedPlan.eta_hours
-        )}h
+        ETA ${escapeHtml(selectedPlan.eta_hours)}h
       </div>
 
       <div class="scenario-metric">
-        RISK ${escapeHtml(
-          selectedPlan.risk
-        )}
+        RISK ${escapeHtml(selectedPlan.risk)}
       </div>
 
       <div class="scenario-metric">
-        COST ${escapeHtml(
-          selectedPlan.cost_level
-        )}
+        COST ${escapeHtml(selectedPlan.cost_level)}
       </div>
-
     </div>
-
   `;
 }
+
 
 
 // ==================================================
@@ -1568,6 +1538,30 @@ function openModifyDialog() {
     "";
 
 
+  const destInput = $("modifyDestination");
+  if (destInput) {
+    destInput.value = selectedPlan.destination || "";
+    destInput.oninput = () => {
+      const newD = destInput.value.trim();
+      if (newD && route.value) {
+        const segs = route.value.split(/→|->/).map(s => s.trim()).filter(Boolean);
+        if (segs.length > 1) {
+          segs[segs.length - 1] = newD;
+          route.value = segs.join(" → ");
+        } else if (segs.length === 1) {
+          route.value = `${segs[0]} → ${newD}`;
+        }
+      }
+    };
+  }
+
+  route.oninput = () => {
+    const segs = route.value.split(/→|->/).map(s => s.trim()).filter(Boolean);
+    if (segs.length > 1 && destInput) {
+      destInput.value = segs[segs.length - 1];
+    }
+  };
+
   eta.value =
     selectedPlan.eta_hours ||
     "";
@@ -1595,8 +1589,13 @@ function openModifyDialog() {
 
   setTimeout(
     () => {
-      route.focus();
-      route.select();
+      if (destInput) {
+        destInput.focus();
+        destInput.select();
+      } else {
+        route.focus();
+        route.select();
+      }
     },
     200
   );
@@ -1633,6 +1632,12 @@ async function submitModification() {
 
   const route =
     $("modifyRoute")?.value.trim();
+
+  const destinationInput =
+    $("modifyDestination")?.value.trim() || "";
+
+  const finalDestination =
+    destinationInput || (route.split(/→|->/).map(s => s.trim()).filter(Boolean).pop());
 
 
   const etaValue =
@@ -1688,6 +1693,8 @@ async function submitModification() {
 
   const modifications = {
     route,
+    destination: finalDestination,
+    shipment_id: selectedPlan.shipment_id,
     eta_hours: eta,
     risk,
     cost_level: cost
@@ -1755,6 +1762,20 @@ async function submitModification() {
 
     }
 
+    // Immediately update Operational Impact and AI Scenarios with the modified destination
+    if (approval.updated_impact) {
+      recoveryData.impact = approval.updated_impact;
+      renderImpact(recoveryData);
+    }
+
+    if (approval.updated_scenarios) {
+      recoveryData.scenarios = approval.updated_scenarios;
+      renderScenarios(recoveryData);
+    }
+
+    if (recoveryData.disruption) {
+      renderKpis(recoveryData);
+    }
 
     renderSelectedPlan();
 
@@ -1770,13 +1791,14 @@ async function submitModification() {
 
 
     showToast(
-      "Plan modified by human. Executing recovery..."
+      `Plan modified to destination: ${selectedPlan.destination || 'updated'}. Executing recovery...`
     );
 
 
     await executeRecovery(
       approval
     );
+
 
 
   } catch (error) {

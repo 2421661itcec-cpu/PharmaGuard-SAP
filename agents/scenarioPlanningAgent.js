@@ -117,6 +117,13 @@ function calculateScore(
 
   // Critical shipments receive additional priority
   // for low-risk recovery options.
+  // Emergency/Deficiency priority boost — prioritize emergency & shortage relief
+  if (shipment.is_emergency || shipment.is_deficit || shipment.priority === "Critical") {
+    score += 25;
+  }
+
+  // Critical shipments receive additional priority
+  // for low-risk recovery options.
   if (
     shipment.priority === "Critical" &&
     plan.risk === "LOW"
@@ -159,6 +166,21 @@ function generateScenarios(impactResult) {
 
             priority:
               shipment.priority,
+
+            urgency_tier:
+              shipment.urgency_tier || "LESS_PRIOR_ROUTINE",
+
+            urgency_label:
+              shipment.urgency_label || "ℹ️ LESS PRIOR: ROUTINE BUFFER",
+
+            priority_note:
+              shipment.priority_note || "",
+
+            is_emergency:
+              Boolean(shipment.is_emergency),
+
+            is_deficit:
+              Boolean(shipment.is_deficit),
 
             origin:
               shipment.origin,
@@ -215,6 +237,21 @@ function generateScenarios(impactResult) {
         priority:
           shipment.priority,
 
+        urgency_tier:
+          shipment.urgency_tier || "LESS_PRIOR_ROUTINE",
+
+        urgency_label:
+          shipment.urgency_label || "ℹ️ LESS PRIOR: ROUTINE BUFFER",
+
+        priority_note:
+          shipment.priority_note || "",
+
+        is_emergency:
+          Boolean(shipment.is_emergency),
+
+        is_deficit:
+          Boolean(shipment.is_deficit),
+
         origin:
           shipment.origin,
 
@@ -233,6 +270,16 @@ function generateScenarios(impactResult) {
           )
       };
     });
+
+  // Sort shipment plans: Emergencies & Deficiencies first (TOP PRIORITY), then Less Prior
+  shipmentPlans.sort((a, b) => {
+    const aUrgent = a.is_emergency || a.is_deficit;
+    const bUrgent = b.is_emergency || b.is_deficit;
+    if (aUrgent && !bUrgent) return -1;
+    if (!aUrgent && bUrgent) return 1;
+    return 0;
+  });
+
 
   return {
     planning_status: "COMPLETED",

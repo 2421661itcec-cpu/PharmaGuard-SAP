@@ -34,44 +34,95 @@ function analyzeImpact(disruptionResult) {
     }
 
     // Find inventory at the shipment destination
+    const destClean = (shipment.destination || "").toLowerCase().trim();
+    const medClean = (shipment.medicine || "").toLowerCase().trim();
+
     const destinationInventory = inventory.find(
       (item) =>
-        item.location === shipment.destination &&
-        item.medicine === shipment.medicine
+        item.location.toLowerCase() === destClean &&
+        (item.medicine.toLowerCase() === medClean ||
+         item.medicine.toLowerCase().includes(medClean) ||
+         medClean.includes(item.medicine.toLowerCase()))
     );
-
 
     let inventoryRisk = "LOW";
     let daysOfCoverage = null;
-    let stockStatus = "Stock available";
+    let stockStatus = "Healthy stock buffer";
+    let isDeficit = false;
+    let isEmergency = false;
+
+    // Check if this shipment route or destination is flagged as emergency/disaster
+    const routeLower = (shipment.route || "").toLowerCase();
+    const destRationaleLower = (shipment.destination_rationale || "").toLowerCase();
+    if (
+      routeLower.includes("emergency") ||
+      routeLower.includes("relief") ||
+      destRationaleLower.includes("emergency") ||
+      destRationaleLower.includes("disaster") ||
+      destRationaleLower.includes("casualt")
+    ) {
+      isEmergency = true;
+    }
 
     if (destinationInventory) {
       daysOfCoverage =
-        destinationInventory.current_stock /
-        destinationInventory.daily_demand;
+        destinationInventory.daily_demand > 0
+          ? destinationInventory.current_stock / destinationInventory.daily_demand
+          : 5.0;
 
       if (
-        destinationInventory.current_stock <=
-        destinationInventory.safety_stock
+        destinationInventory.current_stock <= destinationInventory.safety_stock ||
+        daysOfCoverage <= 3.0
       ) {
+        isDeficit = true;
         inventoryRisk = "HIGH";
-        stockStatus = "Below safety stock";
-      } else if (daysOfCoverage <= 4) {
+        stockStatus = `Critical deficit (${daysOfCoverage.toFixed(1)} days left — below safety threshold)`;
+      } else if (daysOfCoverage <= 5.0) {
         inventoryRisk = "MEDIUM";
-        stockStatus = "Limited stock coverage";
+        stockStatus = `Moderate stock buffer (${daysOfCoverage.toFixed(1)} days coverage)`;
       } else {
         inventoryRisk = "LOW";
-        stockStatus = "Healthy stock coverage";
+        stockStatus = `Abundant stock buffer (${daysOfCoverage.toFixed(1)} days coverage)`;
       }
     } else {
-      inventoryRisk = "UNKNOWN";
-      stockStatus = "No inventory data available";
+      inventoryRisk = isEmergency ? "HIGH" : "LOW";
+      stockStatus = isEmergency ? "Emergency disaster relief zone" : "Standard buffer assumed";
+    }
+
+    // Explicit Priority Designation for Deficiencies & Emergencies
+    let urgencyTier = "LESS_PRIOR_ROUTINE";
+    let urgencyLabel = "ℹ️ LESS PRIOR: ROUTINE BUFFER";
+    let priorityNote = `Less Prior: ${shipment.destination} maintains safe stock levels (> 3 days coverage).`;
+    let shipmentPriority = shipment.priority || "Medium";
+
+    if (isEmergency) {
+      urgencyTier = "PRIORITY_1_EMERGENCY";
+      urgencyLabel = "🚨 PRIORITY: EMERGENCY RELIEF";
+      priorityNote = `Top Priority: Urgent disaster/emergency relief rushed to ${shipment.destination}.`;
+      impactLevel = "CRITICAL";
+      delayRisk = "CRITICAL";
+      shipmentPriority = "Critical";
+    } else if (isDeficit) {
+      urgencyTier = "PRIORITY_1_DEFICIENCY";
+      urgencyLabel = "🚨 PRIORITY: STOCK DEFICIENCY";
+      priorityNote = `Top Priority: Critical stock deficiency at ${shipment.destination} (${stockStatus}).`;
+      impactLevel = "CRITICAL";
+      delayRisk = "HIGH";
+      shipmentPriority = "Critical";
+    } else {
+      // Non-deficit, non-emergency destinations are designated as LESS PRIOR
+      urgencyTier = "LESS_PRIOR_ROUTINE";
+      urgencyLabel = "ℹ️ LESS PRIOR: ROUTINE BUFFER";
+      priorityNote = `Less Prior: Destination has healthy stock (${stockStatus}).`;
+      if (shipmentPriority === "Critical" && !isColdChain) {
+        shipmentPriority = "Medium";
+      }
     }
 
     return {
       shipment_id: shipment.id,
       medicine: shipment.medicine,
-      priority: shipment.priority,
+      priority: shipmentPriority,
       origin: shipment.origin,
       destination: shipment.destination,
       current_route: shipment.route,
@@ -80,6 +131,12 @@ function analyzeImpact(disruptionResult) {
       impact_level: impactLevel,
       delay_risk: delayRisk,
       inventory_risk: inventoryRisk,
+
+      urgency_tier: urgencyTier,
+      urgency_label: urgencyLabel,
+      priority_note: priorityNote,
+      is_emergency: isEmergency,
+      is_deficit: isDeficit,
 
       inventory_status: stockStatus,
       days_of_inventory_coverage: daysOfCoverage
@@ -95,6 +152,7 @@ function analyzeImpact(disruptionResult) {
       risk
     };
   });
+
 
 
   // Get unique affected destinations

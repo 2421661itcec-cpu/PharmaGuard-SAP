@@ -52,8 +52,20 @@ function executeReroute(approvalResult) {
 
   // Apply the approved recovery plan
   shipment.route = plan.route;
+  if (plan.destination) {
+    shipment.destination = plan.destination;
+    const { getCoordinates } = require("../data/trackingStore");
+    const { getWarehouseByCity } = require("../data/warehouses");
+    shipment.destination_coords = getCoordinates(plan.destination);
+    const destWh = getWarehouseByCity(plan.destination);
+    if (destWh) {
+      shipment.destination_hub = destWh.hub_name;
+      shipment.destination_warehouse = `${destWh.warehouse_name} (${destWh.location_address})`;
+    }
+  }
   shipment.status = "Rerouted";
   shipment.eta_hours = plan.eta_hours;
+
 
   return {
     success: true,
