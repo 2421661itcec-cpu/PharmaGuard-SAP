@@ -72,6 +72,12 @@ const cityCoordinates = {
   "bilaspur":       [22.0797, 82.1409],
   "durg":           [21.1904, 81.2849],
   "bhilai":         [21.2144, 81.3805],
+  "ambikapur":      [23.1186, 83.1979],
+  "korba":          [22.3595, 82.7501],
+  "raigarh":        [21.8974, 83.3950],
+  "jagdalpur":      [19.0740, 82.0080],
+  "rajnandgaon":    [21.0971, 81.0366],
+
 
   // India West
   "mumbai":         [19.0760, 72.8777],
@@ -373,24 +379,31 @@ function buildFallbackWaypoints(originLatLng, destLatLng) {
 }
 
 /*
- * resolveWaypoints — given any route string,
- * return the shortest curved path in all cases (by road or by flight).
+ * resolveWaypoints — given any route string and optional endpoints,
+ * returns EXACTLY ONE SINGLE shortest curved geodesic trajectory between Origin and Destination.
+ * Never creates a closed loop, double paths, or routes through non-city labels.
  */
-function resolveWaypoints(routeString) {
+function resolveWaypoints(routeString, originCoords, destCoords) {
+  if (originCoords && destCoords) {
+    return generateCurvedArc(originCoords, destCoords, 28);
+  }
+
   if (!routeString) {
     return null;
   }
 
-  // Exact match against predefined sets
+  // Exact match: take origin and destination to guarantee ONE single curved path
   if (waypointSets[routeString]) {
-    return smoothCurvedWaypoints(waypointSets[routeString]);
+    const set = waypointSets[routeString];
+    return generateCurvedArc(set[0], set[set.length - 1], 28);
   }
 
   // Partial match against existing sets
   const keys = Object.keys(waypointSets);
   for (const key of keys) {
     if (routeString.includes(key) || key.includes(routeString)) {
-      return smoothCurvedWaypoints(waypointSets[key]);
+      const set = waypointSets[key];
+      return generateCurvedArc(set[0], set[set.length - 1], 28);
     }
   }
 
@@ -404,18 +417,27 @@ function resolveWaypoints(routeString) {
     }
   }
 
-  if (parts.length >= 2) {
-    const coords = parts.map(p => {
-      // Remove modifiers like "(Air Freight)"
-      const cleanName = p.replace(/\(.*\)/g, "").trim();
-      return getCoordinates(cleanName);
-    });
+  // Filter out descriptive corridor phrases that are not cities
+  const nonCityKeywords = [
+    "corridor", "hub", "lifeline", "freight", "transit", "road",
+    "highway", "alternate", "route", "relief", "air", "emergency", "bypass"
+  ];
 
-    return smoothCurvedWaypoints(coords, 20);
-  }
+  const cityParts = parts.filter(p => {
+    const clean = p.toLowerCase();
+    return !nonCityKeywords.some(kw => clean.includes(kw));
+  });
 
-  return null;
+  const originName = cityParts[0] || parts[0];
+  const destName = cityParts[cityParts.length - 1] || parts[parts.length - 1];
+
+  const startPt = getCoordinates(originName);
+  const endPt = getCoordinates(destName);
+
+  // Return strictly ONE direct curved trajectory
+  return generateCurvedArc(startPt, endPt, 28);
 }
+
 
 
 /*

@@ -3639,14 +3639,21 @@ document.addEventListener(
         return curved;
       }
 
-      // Draw route polyline as smooth curved shortest path between Origin and Destination
+      // Draw route polyline as strictly ONE single shortest curved trajectory path between Origin and Destination
       function drawOrUpdateRouteLine(t) {
-        const rawWaypoints = (t.waypoints && t.waypoints.length >= 2)
-          ? t.waypoints
-          : (t.origin_coords && t.destination_coords ? [t.origin_coords, t.destination_coords] : []);
+        let waypoints = null;
 
-        const waypoints = buildSmoothCurvedWaypoints(rawWaypoints);
-        if (waypoints.length < 2) return;
+        // Always connect the Origin directly to the Final Destination with ONE single curved arc
+        if (t.origin_coords && t.destination_coords) {
+          waypoints = generateCurvedPath(t.origin_coords, t.destination_coords, 32);
+        } else if (t.waypoints && t.waypoints.length >= 2) {
+          // Use start and final endpoints to guarantee strictly ONE single path without loops
+          const startPt = t.waypoints[0];
+          const endPt = t.waypoints[t.waypoints.length - 1];
+          waypoints = generateCurvedPath(startPt, endPt, 32);
+        }
+
+        if (!waypoints || waypoints.length < 2) return;
 
         const isRerouted = t.status && String(t.status).toLowerCase() === "rerouted";
         const primaryColor = isRerouted ? "#7c3aed" : "#2563eb";
@@ -3657,6 +3664,7 @@ document.addEventListener(
           routeLinesGroup.removeLayer(routePolylines[t.shipment_id].casing);
           routeLinesGroup.removeLayer(routePolylines[t.shipment_id].line);
         }
+
 
         // 1. Casing polyline (soft glowing ambient border along curved path)
         const casing = L.polyline(waypoints, {
