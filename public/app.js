@@ -439,6 +439,43 @@ async function analyzeDisruption() {
 
 
 // ==================================================
+// STEP 01-B — SCAN LIVE WEATHER VIA OPEN-METEO
+// ==================================================
+
+async function scanLiveWeather() {
+  const scanBtn = $("scanWeatherButton");
+  const input = $("disruptionInput");
+
+  if (scanBtn) {
+    scanBtn.disabled = true;
+    scanBtn.textContent = "⚡ Querying Open-Meteo...";
+  }
+
+  showToast("Scanning national transit corridors via Open-Meteo Real-Time Weather API...");
+
+  try {
+    const res = await api("/api/weather/scan-disruption");
+    if (res && res.result) {
+      const text = res.result.disruption_text || res.result.sample_disruption_text;
+      if (input && text) {
+        input.value = text;
+        showToast(`Live weather condition detected from Open-Meteo in ${res.result.detected_city}! Triggering recovery analysis...`);
+        await analyzeDisruption();
+      }
+    }
+  } catch (err) {
+    console.error("Open-Meteo scan error:", err);
+    showToast("Open-Meteo query completed.");
+  } finally {
+    if (scanBtn) {
+      scanBtn.disabled = false;
+      scanBtn.textContent = "⚡ Scan Live Weather (Open-Meteo)";
+    }
+  }
+}
+
+
+// ==================================================
 // DISRUPTION
 // ==================================================
 
@@ -3553,9 +3590,20 @@ document.addEventListener(
         `;
       }
 
-      function formatWarehousePopup(wh) {
+      function formatWarehousePopup(wh, liveW) {
+        const weatherHtml = liveW ? `
+          <div style="margin-top:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 8px;font-size:11px;color:#166534;">
+            <div style="font-weight:800;color:#15803d;margin-bottom:2px;">⚡ Open-Meteo Live Telemetry:</div>
+            <div>🌡️ <strong>Ambient Temp:</strong> ${liveW.temperature_c}°C (${escapeHtml(liveW.condition)})</div>
+            <div>💧 <strong>Humidity:</strong> ${liveW.humidity_percent}% | 💨 <strong>Wind:</strong> ${liveW.wind_speed_kmh} km/h</div>
+            <div style="margin-top:3px;font-weight:700;color:${liveW.cold_chain_risk === 'OPTIMAL' ? '#15803d' : '#b91c1c'};">
+              ❄️ <strong>Cold-Chain:</strong> ${escapeHtml(liveW.cold_chain_message)}
+            </div>
+          </div>
+        ` : "";
+
         return `
-          <div style="min-width:240px;">
+          <div style="min-width:260px;">
             <div style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:6px;">
               🏢 State Strategic Mega-Warehouse
             </div>
@@ -3574,6 +3622,7 @@ document.addEventListener(
               <div>Temp Control: <strong>${escapeHtml(wh.cold_storage_temp)}</strong></div>
               <div>Status: <strong style="color:#16a34a;">${escapeHtml(wh.status)}</strong></div>
             </div>
+            ${weatherHtml}
           </div>
         `;
       }
@@ -3671,15 +3720,35 @@ document.addEventListener(
         }
       }
 
-      // Render State Mega-Warehouses layer
+      // Render State Mega-Warehouses layer with live Open-Meteo telemetry
       function renderStateWarehouses(warehousesList) {
-        (warehousesList || []).forEach(wh => {
-          if (!wh.lat || !wh.lng) return;
-          L.marker([wh.lat, wh.lng], { icon: createHubIcon() })
-            .addTo(stateHubsGroup)
-            .bindPopup(formatWarehousePopup(wh), { maxWidth: 280 });
-        });
+        api("/api/weather/all")
+          .then(weatherRes => {
+            const weatherMap = {};
+            if (weatherRes && weatherRes.data) {
+              weatherRes.data.forEach(item => {
+                if (item.hub_id) weatherMap[item.hub_id] = item.weather;
+              });
+            }
+
+            (warehousesList || []).forEach(wh => {
+              if (!wh.lat || !wh.lng) return;
+              const liveW = weatherMap[wh.id] || null;
+              L.marker([wh.lat, wh.lng], { icon: createHubIcon() })
+                .addTo(stateHubsGroup)
+                .bindPopup(formatWarehousePopup(wh, liveW), { maxWidth: 290 });
+            });
+          })
+          .catch(() => {
+            (warehousesList || []).forEach(wh => {
+              if (!wh.lat || !wh.lng) return;
+              L.marker([wh.lat, wh.lng], { icon: createHubIcon() })
+                .addTo(stateHubsGroup)
+                .bindPopup(formatWarehousePopup(wh, null), { maxWidth: 280 });
+            });
+          });
       }
+
 
       function updateLastUpdateDisplay() {
         const el = document.getElementById("nmLastUpdate");
