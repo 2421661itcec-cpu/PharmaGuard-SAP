@@ -137,17 +137,33 @@ function detectDisruption(disruption) {
   // If no shipment matches this location (e.g. user entered Bangalore, Kolkata, London, etc.),
   // dynamically attach an active pharma corridor passing through that hub.
   if (affectedShipments.length === 0) {
+    const { getWarehouseByCity, stateWarehouses } = require("../data/warehouses");
     const dynamicId = `SH-${disruptedLocation.slice(0, 3).toUpperCase()}${Math.floor(100 + Math.random() * 900)}`;
+
     const pairedDestination =
       locLower === "bangalore" ? "Chennai"
+      : locLower === "chennai" ? "Bangalore"
       : locLower === "mumbai" ? "Pune"
+      : locLower === "pune" ? "Mumbai"
       : locLower === "kolkata" ? "Patna"
       : locLower === "hyderabad" ? "Bangalore"
+      : locLower === "ahmedabad" ? "Mumbai"
+      : locLower === "jaipur" ? "Delhi"
+      : locLower === "lucknow" ? "Delhi"
+      : locLower === "bhopal" || locLower === "indore" ? "Delhi"
+      : locLower === "kochi" ? "Coimbatore"
+      : locLower === "patna" ? "Kolkata"
       : locLower === "london" ? "Frankfurt"
       : locLower === "frankfurt" ? "Basel"
-      : "Central Hub";
+      : "Delhi";
+
+    const originWh = getWarehouseByCity(disruptedLocation);
+    const destWh = getWarehouseByCity(pairedDestination);
 
     const coords = getCoordinates(disruptedLocation);
+    const destCoords = getCoordinates(pairedDestination);
+
+    const dynamicRoute = `${disruptedLocation} → State Transit Corridor → ${pairedDestination}`;
 
     // Reuse or create dynamic shipment
     const existingDyn = shipments.find(s => s.origin === disruptedLocation);
@@ -159,8 +175,14 @@ function detectDisruption(disruption) {
         medicine: "Critical Oncology & Vaccines",
         priority: "Critical",
         origin: disruptedLocation,
+        origin_hub: originWh ? originWh.hub_name : `${disruptedLocation} State Central Hub`,
+        origin_warehouse: originWh ? `${originWh.warehouse_name} (${originWh.location_address})` : `${disruptedLocation} Strategic Medical Depot`,
+        origin_coords: coords,
         destination: pairedDestination,
-        route: `${disruptedLocation} → Central Corridor → ${pairedDestination}`,
+        destination_hub: destWh ? destWh.hub_name : `${pairedDestination} Regional Apex Depot`,
+        destination_warehouse: destWh ? `${destWh.warehouse_name} (${destWh.location_address})` : `${pairedDestination} Strategic Medical Depot`,
+        destination_coords: destCoords,
+        route: dynamicRoute,
         status: "In Transit",
         lat: coords[0],
         lng: coords[1]
@@ -171,6 +193,7 @@ function detectDisruption(disruption) {
       affectedShipments = [dynamicShipment];
     }
   }
+
 
   // Determine severity based on disruption text and affected priority
   let severity = "MEDIUM";

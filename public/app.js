@@ -3260,16 +3260,36 @@ document.addEventListener(
       renderPageShell(
         "SIMULATED LIVE TRACKING",
         "Network Map",
-        "Real-time simulated shipment positions across the pharmaceutical supply network.",
+        "Real-time pharmaceutical supply routes with initial/final destinations, state mega-warehouses, and live vehicle tracking.",
         `
           <div class="nm-wrapper">
             <div class="nm-status-bar">
               <span class="nm-live-dot"></span>
-              <span class="nm-live-label">SIMULATED LIVE TRACKING</span>
-              <span class="nm-last-update" id="nmLastUpdate">Connecting...</span>
+              <span class="nm-live-label">LIVE PHARMA FLEET TRACKING</span>
+              <div class="nm-toolbar">
+                <button type="button" id="nmToggleHubsBtn" class="nm-toggle-btn active">
+                  🏢 State Mega-Hubs (19)
+                </button>
+                <span class="nm-last-update" id="nmLastUpdate">Connecting...</span>
+              </div>
             </div>
             <div id="nmMapContainer" class="nm-map-container"></div>
             <div class="nm-legend">
+              <div class="nm-legend-item">
+                <span class="nm-legend-dot nm-dot-origin"></span> 🟢 Origin Hub
+              </div>
+              <div class="nm-legend-item">
+                <span class="nm-legend-dot nm-dot-dest"></span> 🏁 Destination Depot
+              </div>
+              <div class="nm-legend-item">
+                <span class="nm-legend-dot nm-dot-hub"></span> 🏢 State Mega-Warehouse
+              </div>
+              <div class="nm-legend-item" style="gap:4px;">
+                <span style="display:inline-block;width:18px;height:3px;background:#2563eb;border-radius:2px;"></span> Active Route
+              </div>
+              <div class="nm-legend-item" style="gap:4px;">
+                <span style="display:inline-block;width:18px;height:3px;background:#7c3aed;border-radius:2px;"></span> Rerouted Detour
+              </div>
               <div class="nm-legend-item">
                 <span class="nm-legend-dot nm-dot-critical"></span> Critical
               </div>
@@ -3278,9 +3298,6 @@ document.addEventListener(
               </div>
               <div class="nm-legend-item">
                 <span class="nm-legend-dot nm-dot-medium"></span> Medium
-              </div>
-              <div class="nm-legend-item">
-                <span class="nm-legend-dot nm-dot-rerouted"></span> Rerouted
               </div>
             </div>
           </div>
@@ -3326,14 +3343,14 @@ document.addEventListener(
       if (!mapEl) return;
       mapEl.innerHTML = "";
 
-      // India center
+      // India center view
       const map = L.map(mapEl, {
-        center: [22.5, 80.0],
+        center: [22.8, 79.5],
         zoom: 5,
         zoomControl: true
       });
 
-      // OpenStreetMap tiles — no API key required
+      // OpenStreetMap tiles
       L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
@@ -3343,98 +3360,325 @@ document.addEventListener(
         }
       ).addTo(map);
 
-      // Marker color by priority/status
-      function markerColor(priority, status) {
-        if (
-          status &&
-          String(status).toLowerCase() === "rerouted"
-        ) {
-          return "#7c3aed";
-        }
-        const p = String(priority || "").toLowerCase();
-        if (p === "critical") return "#dc2626";
-        if (p === "high")     return "#ea580c";
-        return "#ca8a04";
-      }
+      // Layers groups for clean toggle management
+      const routeLinesGroup = L.layerGroup().addTo(map);
+      const endpointMarkersGroup = L.layerGroup().addTo(map);
+      const stateHubsGroup = L.layerGroup().addTo(map);
+      const vehicleMarkersGroup = L.layerGroup().addTo(map);
 
-      function createIcon(priority, status) {
-        const color = markerColor(priority, status);
-        return L.divIcon({
-          className: "",
-          html: `<div style="
-            width:18px;height:18px;
-            background:${color};
-            border:3px solid #fff;
-            border-radius:50%;
-            box-shadow:0 2px 8px rgba(0,0,0,0.35);
-          "></div>`,
-          iconSize: [18, 18],
-          iconAnchor: [9, 9],
-          popupAnchor: [0, -12]
+      let showStateHubs = true;
+      const toggleHubsBtn = document.getElementById("nmToggleHubsBtn");
+      if (toggleHubsBtn) {
+        toggleHubsBtn.addEventListener("click", () => {
+          showStateHubs = !showStateHubs;
+          if (showStateHubs) {
+            map.addLayer(stateHubsGroup);
+            toggleHubsBtn.classList.add("active");
+          } else {
+            map.removeLayer(stateHubsGroup);
+            toggleHubsBtn.classList.remove("active");
+          }
         });
       }
 
-      const markers = {};
+      function markerColor(priority, status) {
+        if (status && String(status).toLowerCase() === "rerouted") {
+          return "#7c3aed"; // purple
+        }
+        const p = String(priority || "").toLowerCase();
+        if (p === "critical") return "#dc2626"; // red
+        if (p === "high")     return "#ea580c"; // orange
+        return "#ca8a04"; // yellow/gold
+      }
+
+      // 1. Vehicle moving marker icon
+      function createVehicleIcon(priority, status, medicine) {
+        const color = markerColor(priority, status);
+        return L.divIcon({
+          className: "",
+          html: `
+            <div class="nm-vehicle-pin" style="
+              width: 32px; height: 32px;
+              background: ${color};
+              box-shadow: 0 3px 12px rgba(0,0,0,0.45);
+              border-radius: 50%;
+              display: flex; align-items: center; justify-content: center;
+              color: #ffffff; font-size: 15px; cursor: pointer;
+            ">
+              🚚
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -18]
+        });
+      }
+
+      // 2. Initial Origin Point Icon
+      function createOriginIcon() {
+        return L.divIcon({
+          className: "",
+          html: `
+            <div class="nm-pin nm-origin-pin" style="
+              width: 28px; height: 28px;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 14px; cursor: pointer;
+            ">
+              🟢
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+          popupAnchor: [0, -16]
+        });
+      }
+
+      // 3. Final Destination Point Icon
+      function createDestinationIcon() {
+        return L.divIcon({
+          className: "",
+          html: `
+            <div class="nm-pin nm-dest-pin" style="
+              width: 28px; height: 28px;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 14px; cursor: pointer;
+            ">
+              🏁
+            </div>
+          `,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+          popupAnchor: [0, -16]
+        });
+      }
+
+      // 4. State Mega-Warehouse Hub Icon
+      function createHubIcon() {
+        return L.divIcon({
+          className: "",
+          html: `
+            <div class="nm-pin nm-hub-pin" style="
+              width: 24px; height: 24px;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 12px; cursor: pointer; opacity: 0.9;
+            ">
+              🏢
+            </div>
+          `,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+          popupAnchor: [0, -14]
+        });
+      }
+
+      const vehicleMarkers = {};
+      const routePolylines = {};
+      const endpointMarkers = {};
       let lastUpdateTime = null;
       let socket = null;
       let lastUpdateInterval = null;
 
-      function formatPopup(t) {
+      // Popups formatting
+      function formatVehiclePopup(t) {
         const eta = t.eta_hours != null ? `${t.eta_hours}h` : "—";
         const statusLabel = t.status || "In Transit";
+        const color = markerColor(t.priority, t.status);
         return `
-          <div style="min-width:160px;font-family:sans-serif;">
-            <div style="font-weight:800;font-size:14px;margin-bottom:4px;">
-              ${escapeHtml(t.shipment_id)}
-            </div>
-            <div style="font-size:13px;font-weight:600;margin-bottom:6px;">
-              ${escapeHtml(t.medicine)}
-            </div>
-            <div style="font-size:11px;color:#64748b;margin-bottom:2px;">
-              ${escapeHtml(t.route || "")}
-            </div>
-            <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
-              <span style="background:${markerColor(t.priority, t.status)};
-                color:#fff;padding:2px 8px;border-radius:999px;
-                font-size:11px;font-weight:700;">
+          <div style="min-width:240px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-weight:800;font-size:15px;color:#1e293b;">${escapeHtml(t.shipment_id)}</span>
+              <span style="background:${color};color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;">
                 ${escapeHtml(t.priority || "")}
               </span>
-              <span style="background:#f1f5f9;color:#334155;padding:2px 8px;
-                border-radius:999px;font-size:11px;font-weight:700;">
-                ${escapeHtml(statusLabel)}
-              </span>
             </div>
-            <div style="margin-top:6px;font-size:12px;color:#334155;">
-              ETA: <strong>${eta}</strong>
+            <div style="font-size:13px;font-weight:700;color:#0f5bd3;margin-bottom:4px;">
+              💊 ${escapeHtml(t.medicine || "Life-Saving Medicine")}
             </div>
-            <div style="margin-top:2px;font-size:11px;color:#94a3b8;">
-              ${escapeHtml(t.origin || "")} → ${escapeHtml(t.destination || "")}
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px;margin:8px 0;font-size:12px;">
+              <div style="color:#64748b;font-size:10px;text-transform:uppercase;font-weight:700;">Active Route Path</div>
+              <div style="font-weight:700;color:#1e293b;margin-top:2px;">${escapeHtml(t.route || "")}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-bottom:6px;">
+              <div>Status: <strong>${escapeHtml(statusLabel)}</strong></div>
+              <div>Speed: <strong>${t.speed || 70} km/h</strong></div>
+              <div>ETA: <strong>${eta}</strong></div>
+              <div>Heading: <strong>${t.heading || 0}°</strong></div>
+            </div>
+            <div style="font-size:11px;color:#64748b;border-top:1px solid #edf2f7;padding-top:6px;">
+              <div>🟢 <strong>Origin:</strong> ${escapeHtml(t.origin_hub || t.origin || "Origin")}</div>
+              <div>🏁 <strong>Destination:</strong> ${escapeHtml(t.destination_hub || t.destination || "Destination")}</div>
             </div>
           </div>
         `;
       }
 
-      function placeOrMoveMarker(t) {
+      function formatOriginPopup(t) {
+        return `
+          <div style="min-width:230px;">
+            <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:6px;">
+              🟢 Initial Origin Dispatch Hub
+            </div>
+            <div style="font-weight:800;font-size:14px;color:#1e293b;margin-bottom:2px;">
+              ${escapeHtml(t.origin_hub || `${t.origin} Central Logistics Hub`)}
+            </div>
+            <div style="font-size:12px;color:#475569;margin-bottom:6px;">
+              🏢 ${escapeHtml(t.origin_warehouse || `${t.origin} Central Pharma Warehouse`)}
+            </div>
+            <div style="font-size:11px;color:#64748b;border-top:1px solid #edf2f7;padding-top:6px;">
+              <div>Departing Shipment: <strong>${escapeHtml(t.shipment_id)}</strong></div>
+              <div>Cargo: <strong>${escapeHtml(t.medicine)}</strong> (${escapeHtml(t.priority)})</div>
+            </div>
+          </div>
+        `;
+      }
+
+      function formatDestinationPopup(t) {
+        return `
+          <div style="min-width:230px;">
+            <div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:6px;">
+              🏁 Final Destination Medical Depot
+            </div>
+            <div style="font-weight:800;font-size:14px;color:#1e293b;margin-bottom:2px;">
+              ${escapeHtml(t.destination_hub || `${t.destination} Regional Health Hub`)}
+            </div>
+            <div style="font-size:12px;color:#475569;margin-bottom:6px;">
+              🏥 ${escapeHtml(t.destination_warehouse || `${t.destination} State Buffer Store`)}
+            </div>
+            <div style="font-size:11px;color:#64748b;border-top:1px solid #edf2f7;padding-top:6px;">
+              <div>Incoming Shipment: <strong>${escapeHtml(t.shipment_id)}</strong></div>
+              <div>Medicine Expected: <strong>${escapeHtml(t.medicine)}</strong></div>
+              <div>Estimated Arrival: <strong>${t.eta_hours != null ? `${t.eta_hours} hours` : "In Transit"}</strong></div>
+            </div>
+          </div>
+        `;
+      }
+
+      function formatWarehousePopup(wh) {
+        return `
+          <div style="min-width:240px;">
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:6px;">
+              🏢 State Strategic Mega-Warehouse
+            </div>
+            <div style="font-weight:800;font-size:14px;color:#1e293b;margin-bottom:2px;">
+              ${escapeHtml(wh.hub_name)}
+            </div>
+            <div style="font-size:12px;font-weight:700;color:#0f5bd3;margin-bottom:4px;">
+              ${escapeHtml(wh.warehouse_name)}
+            </div>
+            <div style="font-size:11px;color:#475569;margin-bottom:6px;">
+              📍 ${escapeHtml(wh.location_address)}
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:11px;color:#334155;">
+              <div>State: <strong>${escapeHtml(wh.state)}</strong></div>
+              <div>Capacity: <strong>${escapeHtml(wh.capacity)}</strong></div>
+              <div>Temp Control: <strong>${escapeHtml(wh.cold_storage_temp)}</strong></div>
+              <div>Status: <strong style="color:#16a34a;">${escapeHtml(wh.status)}</strong></div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Draw Zomato-style route polyline between Origin and Destination
+      function drawOrUpdateRouteLine(t) {
+        const waypoints = t.waypoints || [];
+        if (waypoints.length < 2) return;
+
+        const isRerouted = t.status && String(t.status).toLowerCase() === "rerouted";
+        const primaryColor = isRerouted ? "#7c3aed" : "#2563eb";
+        const casingColor = isRerouted ? "rgba(124, 58, 237, 0.25)" : "rgba(37, 99, 235, 0.22)";
+
+        // Remove existing route lines for this shipment if already drawn
+        if (routePolylines[t.shipment_id]) {
+          routeLinesGroup.removeLayer(routePolylines[t.shipment_id].casing);
+          routeLinesGroup.removeLayer(routePolylines[t.shipment_id].line);
+        }
+
+        // 1. Casing polyline (soft glowing border)
+        const casing = L.polyline(waypoints, {
+          color: casingColor,
+          weight: 8,
+          opacity: 0.85,
+          lineCap: "round",
+          lineJoin: "round"
+        }).addTo(routeLinesGroup);
+
+        // 2. Main delivery route polyline (crisp dashed line like Zomato/Swiggy tracking)
+        const line = L.polyline(waypoints, {
+          color: primaryColor,
+          weight: 3.5,
+          opacity: 0.95,
+          dashArray: "6, 8",
+          lineCap: "round",
+          lineJoin: "round"
+        }).addTo(routeLinesGroup);
+
+        line.bindTooltip(
+          `<strong>${escapeHtml(t.shipment_id)} Route</strong>: ${escapeHtml(t.route || "")}`,
+          { sticky: true, className: "nm-route-tooltip" }
+        );
+
+        routePolylines[t.shipment_id] = { casing, line, currentRoute: t.route };
+      }
+
+      // Draw Origin and Destination endpoints
+      function drawEndpoints(t) {
+        const originCoords = t.origin_coords;
+        const destCoords = t.destination_coords;
+
+        const originKey = `${t.shipment_id}-origin`;
+        const destKey = `${t.shipment_id}-dest`;
+
+        if (originCoords && !endpointMarkers[originKey]) {
+          const originMarker = L.marker(originCoords, { icon: createOriginIcon() })
+            .addTo(endpointMarkersGroup)
+            .bindPopup(formatOriginPopup(t), { maxWidth: 280 });
+          endpointMarkers[originKey] = originMarker;
+        }
+
+        if (destCoords && !endpointMarkers[destKey]) {
+          const destMarker = L.marker(destCoords, { icon: createDestinationIcon() })
+            .addTo(endpointMarkersGroup)
+            .bindPopup(formatDestinationPopup(t), { maxWidth: 280 });
+          endpointMarkers[destKey] = destMarker;
+        }
+      }
+
+      // Update vehicle marker on map
+      function placeOrMoveVehicle(t) {
         if (!t.latitude || !t.longitude) return;
         const latlng = [t.latitude, t.longitude];
 
-        if (markers[t.shipment_id]) {
-          markers[t.shipment_id].setLatLng(latlng);
-          markers[t.shipment_id].setIcon(
-            createIcon(t.priority, t.status)
-          );
-          if (markers[t.shipment_id].getPopup()) {
-            markers[t.shipment_id].getPopup().setContent(formatPopup(t));
+        // Draw/update Zomato-style route path line
+        drawOrUpdateRouteLine(t);
+
+        // Draw initial & final destination pins
+        drawEndpoints(t);
+
+        if (vehicleMarkers[t.shipment_id]) {
+          vehicleMarkers[t.shipment_id].setLatLng(latlng);
+          vehicleMarkers[t.shipment_id].setIcon(createVehicleIcon(t.priority, t.status, t.medicine));
+          if (vehicleMarkers[t.shipment_id].getPopup()) {
+            vehicleMarkers[t.shipment_id].getPopup().setContent(formatVehiclePopup(t));
           }
         } else {
           const m = L.marker(latlng, {
-            icon: createIcon(t.priority, t.status)
+            icon: createVehicleIcon(t.priority, t.status, t.medicine)
           })
-            .addTo(map)
-            .bindPopup(formatPopup(t), { maxWidth: 240 });
+            .addTo(vehicleMarkersGroup)
+            .bindPopup(formatVehiclePopup(t), { maxWidth: 280 });
 
-          markers[t.shipment_id] = m;
+          vehicleMarkers[t.shipment_id] = m;
         }
+      }
+
+      // Render State Mega-Warehouses layer
+      function renderStateWarehouses(warehousesList) {
+        (warehousesList || []).forEach(wh => {
+          if (!wh.lat || !wh.lng) return;
+          L.marker([wh.lat, wh.lng], { icon: createHubIcon() })
+            .addTo(stateHubsGroup)
+            .bindPopup(formatWarehousePopup(wh), { maxWidth: 280 });
+        });
       }
 
       function updateLastUpdateDisplay() {
@@ -3447,21 +3691,30 @@ document.addEventListener(
       // Initial paint from REST API
       api("/api/tracking/all")
         .then(result => {
+          // Render State Mega-Warehouses across India
+          if (result.warehouses && Array.isArray(result.warehouses)) {
+            renderStateWarehouses(result.warehouses);
+          }
+
+          // Render active shipments with Zomato route paths
           const list = result.tracking || [];
-          list.forEach(placeOrMoveMarker);
+          list.forEach(placeOrMoveVehicle);
 
           if (list.length > 0) {
-            const bounds = list
-              .filter(t => t.latitude && t.longitude)
-              .map(t => [t.latitude, t.longitude]);
+            const allPoints = [];
+            list.forEach(t => {
+              if (t.latitude && t.longitude) allPoints.push([t.latitude, t.longitude]);
+              if (t.origin_coords) allPoints.push(t.origin_coords);
+              if (t.destination_coords) allPoints.push(t.destination_coords);
+            });
 
-            if (bounds.length > 0) {
-              map.fitBounds(bounds, { padding: [60, 60] });
+            if (allPoints.length > 0) {
+              map.fitBounds(allPoints, { padding: [50, 50] });
             }
           }
         })
         .catch(() => {
-          // Non-fatal — live socket will populate markers
+          // Non-fatal
         });
 
       // Connect Socket.IO for live position updates
@@ -3472,12 +3725,12 @@ document.addEventListener(
 
         socket.on("connect", () => {
           const el = document.getElementById("nmLastUpdate");
-          if (el) el.textContent = "Connected — waiting for update...";
+          if (el) el.textContent = "Live Socket.IO Stream Active";
         });
 
         socket.on("trackingUpdate", (trackingList) => {
           lastUpdateTime = Date.now();
-          trackingList.forEach(placeOrMoveMarker);
+          trackingList.forEach(placeOrMoveVehicle);
           updateLastUpdateDisplay();
         });
 
@@ -3506,13 +3759,12 @@ document.addEventListener(
         }
         try {
           map.remove();
-        } catch (e) {
-          // map already removed
-        }
+        } catch (e) {}
         window._pgMapCleanup = null;
       };
 
     }
+
 
 
     // ------------------------------------------------
