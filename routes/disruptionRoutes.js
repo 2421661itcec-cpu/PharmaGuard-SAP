@@ -14,17 +14,15 @@ const {
 } = require("../agents/scenarioPlanningAgent");
 
 router.get("/", (req, res) => {
-  const disruptionResult = detectDisruption(
-    "Ambala distribution hub closure"
-  );
+  const query = req.query.disruption || "Ambala distribution hub closure";
+  const disruptionResult = detectDisruption(query);
 
   res.json(disruptionResult);
 });
 
 router.get("/impact", (req, res) => {
-  const disruptionResult = detectDisruption(
-    "Ambala distribution hub closure"
-  );
+  const query = req.query.disruption || "Ambala distribution hub closure";
+  const disruptionResult = detectDisruption(query);
 
   const impactResult = analyzeImpact(disruptionResult);
 
@@ -32,9 +30,8 @@ router.get("/impact", (req, res) => {
 });
 
 router.get("/scenarios", (req, res) => {
-  const disruptionResult = detectDisruption(
-    "Ambala distribution hub closure"
-  );
+  const query = req.query.disruption || "Ambala distribution hub closure";
+  const disruptionResult = detectDisruption(query);
 
   const impactResult = analyzeImpact(disruptionResult);
 
