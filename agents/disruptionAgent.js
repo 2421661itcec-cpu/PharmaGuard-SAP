@@ -1,90 +1,131 @@
 // --------------------------------------------------
 // DISRUPTION SENSING AGENT
 // Responsibility:
-// Detect disruption, dynamically identify the affected
-// location across India or globally, and pinpoint the
-// affected pharmaceutical shipments.
+// Detect disruption, identify the affected supply chain
+// corridor or hub, and pinpoint affected shipments.
+// Robust against any phrasing: specific cities, transit
+// corridors, or generalized weather/infrastructure events.
 // --------------------------------------------------
 
 const shipments = require("../data/shipments");
 const { getCoordinates, registerShipmentInTracking } = require("../data/trackingStore");
 
-// Catalog of known logistical hubs for rapid fuzzy matching
-const KNOWN_CITIES = [
-  "Ambala", "Delhi", "Chandigarh", "Ludhiana", "Mumbai", "Amritsar", "Panipat",
-  "Kurukshetra", "Jalandhar", "Jaipur", "Lucknow", "Kanpur", "Agra", "Bhopal",
-  "Indore", "Nagpur", "Patna", "Pune", "Ahmedabad", "Surat", "Vadodara",
-  "Bangalore", "Bengaluru", "Chennai", "Hyderabad", "Kolkata", "Coimbatore",
-  "Kochi", "Visakhapatnam", "Goa", "Guwahati", "Bhubaneswar", "London",
-  "Frankfurt", "Singapore", "Dubai", "New York", "Tokyo", "Basel", "Zurich",
-  "Chicago", "Paris", "Berlin", "Amsterdam"
+// Verified geographical locations across India and international hubs
+const KNOWN_HUBS = [
+  // Northern Corridor
+  { name: "Ambala", matches: ["ambala", "gt road", "nh44", "nh-44", "grand trunk", "shivalik"] },
+  { name: "Delhi", matches: ["delhi", "new delhi", "ncr", "noida", "gurgaon", "gurugram", "faridabad", "ghaziabad"] },
+  { name: "Chandigarh", matches: ["chandigarh", "mohali", "panchkula"] },
+  { name: "Ludhiana", matches: ["ludhiana"] },
+  { name: "Amritsar", matches: ["amritsar", "wagah"] },
+  { name: "Panipat", matches: ["panipat", "karnal", "kurukshetra", "sonipat", "rohtak"] },
+  { name: "Jalandhar", matches: ["jalandhar"] },
+
+  // Western Corridor
+  { name: "Mumbai", matches: ["mumbai", "bombay", "navi mumbai", "thane", "jnpt", "nh48"] },
+  { name: "Pune", matches: ["pune", "pimpri"] },
+  { name: "Ahmedabad", matches: ["ahmedabad", "gandhinagar", "gujarat"] },
+  { name: "Surat", matches: ["surat", "hazira"] },
+  { name: "Vadodara", matches: ["vadodara", "baroda"] },
+  { name: "Udaipur", matches: ["udaipur"] },
+  { name: "Jaipur", matches: ["jaipur", "rajasthan"] },
+  { name: "Goa", matches: ["goa", "mormugao"] },
+
+  // Southern Corridor
+  { name: "Bangalore", matches: ["bangalore", "bengaluru", "electronic city", "whitefield", "karnataka"] },
+  { name: "Chennai", matches: ["chennai", "madras", "ennore", "tamil nadu"] },
+  { name: "Hyderabad", matches: ["hyderabad", "secunderabad", "cyberabad", "telangana"] },
+  { name: "Coimbatore", matches: ["coimbatore"] },
+  { name: "Kochi", matches: ["kochi", "cochin", "kerala"] },
+  { name: "Visakhapatnam", matches: ["visakhapatnam", "vizag", "andhra"] },
+
+  // Eastern & Central Corridor
+  { name: "Kolkata", matches: ["kolkata", "calcutta", "howrah", "west bengal"] },
+  { name: "Patna", matches: ["patna", "bihar"] },
+  { name: "Lucknow", matches: ["lucknow", "kanpur", "uttar pradesh", "up"] },
+  { name: "Bhopal", matches: ["bhopal", "indore", "madhya pradesh", "mp"] },
+  { name: "Nagpur", matches: ["nagpur"] },
+  { name: "Guwahati", matches: ["guwahati", "assam"] },
+  { name: "Bhubaneswar", matches: ["bhubaneswar", "odisha"] },
+
+  // Global Hubs
+  { name: "London", matches: ["london", "heathrow", "uk", "united kingdom"] },
+  { name: "Frankfurt", matches: ["frankfurt", "germany"] },
+  { name: "Singapore", matches: ["singapore", "changi"] },
+  { name: "Dubai", matches: ["dubai", "uae"] },
+  { name: "New York", matches: ["new york", "jfk", "newark", "usa"] },
+  { name: "Basel", matches: ["basel", "zurich", "switzerland"] },
+  { name: "Chicago", matches: ["chicago", "ohare"] },
+  { name: "Paris", matches: ["paris", "charles de gaulle"] },
+  { name: "Tokyo", matches: ["tokyo", "narita", "haneda", "japan"] }
 ];
 
-// Helper to extract location from arbitrary text
+// Words that must NEVER be treated as cities
+const NON_LOCATION_STOPWORDS = new Set([
+  "the", "a", "an", "all", "our", "in", "near", "at", "on", "to", "from", "between",
+  "warehouse", "transit", "highway", "traffic", "hub", "hospital", "due", "road",
+  "strike", "heavy", "delay", "severe", "closed", "closure", "snow", "rain",
+  "storm", "flood", "flooding", "accident", "emergency", "power", "truck", "driver",
+  "drivers", "bridge", "port", "customs", "audit", "hold", "temperature", "cold",
+  "chain", "alert", "route", "shipment", "medicine", "facility", "fog", "jam",
+  "block", "blocked", "breakdown", "strike", "protest", "outage", "landslide",
+  "corridor", "terminal", "depot", "center", "centre", "expressway", "urgent",
+  "breach", "failure", "shortage", "spill", "leak", "fire", "incident"
+]);
+
 function extractLocation(disruptionText) {
   const lower = disruptionText.toLowerCase();
 
-  // 1. Check direct matches with existing shipment routes & origins/destinations
-  for (const s of shipments) {
-    if (lower.includes(s.origin.toLowerCase())) return s.origin;
-    if (lower.includes(s.destination.toLowerCase())) return s.destination;
-    const parts = s.route.split(/[→\->]/).map(p => p.trim());
-    for (const part of parts) {
-      if (part && lower.includes(part.toLowerCase())) {
-        return part;
+  // 1. Check known hubs (direct word or boundary match)
+  for (const hub of KNOWN_HUBS) {
+    for (const kw of hub.matches) {
+      const regex = new RegExp(`\\b${kw}\\b`, "i");
+      if (regex.test(lower)) {
+        return hub.name;
       }
     }
   }
 
-  // 2. Check catalog of known major cities
-  for (const city of KNOWN_CITIES) {
-    if (lower.includes(city.toLowerCase())) {
-      return city;
-    }
+  // 2. Check origins and destinations of existing shipments
+  for (const s of shipments) {
+    if (new RegExp(`\\b${s.origin.toLowerCase()}\\b`, "i").test(lower)) return s.origin;
+    if (new RegExp(`\\b${s.destination.toLowerCase()}\\b`, "i").test(lower)) return s.destination;
   }
 
-  // 3. Regular expression patterns for natural language place mentions
-  // e.g. "in Bangalore", "near Hyderabad", "at Mumbai port", "Kolkata hub", "Chennai distribution"
+  // 3. Regex for pattern "in <City>", "near <City>", "at <City>"
   const patterns = [
-    /(?:in|near|at|around|outside)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i,
-    /([A-Za-z]+(?:\s+[A-Za-z]+)?)\s+(?:hub|distribution|warehouse|center|facility|port|airport|highway|corridor|station|terminal|city|depot)/i,
-    /([A-Za-z]+)\s+to\s+([A-Za-z]+)/i
+    /(?:in|near|at|around|towards|outside)\s+([A-Za-z]+)/i,
+    /([A-Za-z]+)\s+(?:hub|distribution|warehouse|facility|port|airport|terminal|station)/i
   ];
 
   for (const pattern of patterns) {
     const match = disruptionText.match(pattern);
     if (match && match[1]) {
       const candidate = match[1].trim();
-      const stopWords = ["the", "a", "an", "all", "our", "major", "severe", "closed", "road", "rail"];
-      if (!stopWords.includes(candidate.toLowerCase()) && candidate.length > 2) {
-        // Capitalize nicely
-        return candidate.charAt(0).toUpperCase() + candidate.slice(1);
+      if (candidate.length > 2 && !NON_LOCATION_STOPWORDS.has(candidate.toLowerCase())) {
+        return candidate.charAt(0).toUpperCase() + candidate.slice(1).toLowerCase();
       }
     }
   }
 
-  // 4. Fallback: if words like "hub" or "closure" are present, extract preceding word
-  const words = disruptionText.split(/\s+/);
-  if (words.length > 0 && words[0].length > 2) {
-    return words[0].charAt(0).toUpperCase() + words[0].slice(1);
-  }
-
-  return "Global Supply Node";
+  // 4. Default fallback: if no city is named (e.g. user entered "heavy rain", "truck strike", "accident on highway"),
+  // default to the central transit lifeline (Ambala Corridor) connecting active shipments.
+  return "Ambala";
 }
 
 function detectDisruption(disruption) {
-  const disruptionText = (disruption || "").trim();
+  const disruptionText = (disruption || "").trim() || "Supply chain transit disruption";
   const lowerText = disruptionText.toLowerCase();
 
-  // Extract the disrupted location dynamically
+  // Extract the disrupted location cleanly
   const disruptedLocation = extractLocation(disruptionText);
+  const locLower = disruptedLocation.toLowerCase();
 
-  // Find any existing shipments that pass through or touch this location
+  // Find existing shipments matching this location
   let affectedShipments = shipments.filter((shipment) => {
     const route = shipment.route.toLowerCase();
     const origin = shipment.origin.toLowerCase();
     const destination = shipment.destination.toLowerCase();
-    const locLower = disruptedLocation.toLowerCase();
 
     return (
       route.includes(locLower) ||
@@ -93,57 +134,63 @@ function detectDisruption(disruption) {
     );
   });
 
-  // If no existing shipment covers this location, dynamically instantiate
-  // a live active shipment for this corridor so the entire 7-agent pipeline
-  // operates realistically for ANY location worldwide.
-  if (affectedShipments.length === 0 && disruptedLocation) {
+  // If no shipment matches this location (e.g. user entered Bangalore, Kolkata, London, etc.),
+  // dynamically attach an active pharma corridor passing through that hub.
+  if (affectedShipments.length === 0) {
     const dynamicId = `SH-${disruptedLocation.slice(0, 3).toUpperCase()}${Math.floor(100 + Math.random() * 900)}`;
-    const pairedDestination = disruptedLocation.toLowerCase() === "bangalore" ? "Chennai"
-      : disruptedLocation.toLowerCase() === "mumbai" ? "Pune"
-      : disruptedLocation.toLowerCase() === "kolkata" ? "Patna"
-      : disruptedLocation.toLowerCase() === "hyderabad" ? "Bangalore"
-      : disruptedLocation.toLowerCase() === "london" ? "Frankfurt"
-      : "Regional Hub";
+    const pairedDestination =
+      locLower === "bangalore" ? "Chennai"
+      : locLower === "mumbai" ? "Pune"
+      : locLower === "kolkata" ? "Patna"
+      : locLower === "hyderabad" ? "Bangalore"
+      : locLower === "london" ? "Frankfurt"
+      : locLower === "frankfurt" ? "Basel"
+      : "Central Hub";
 
     const coords = getCoordinates(disruptedLocation);
 
-    const dynamicShipment = {
-      id: dynamicId,
-      medicine: "Critical Vaccines & Oncology",
-      priority: "Critical",
-      origin: disruptedLocation,
-      destination: pairedDestination,
-      route: `${disruptedLocation} → Central Corridor → ${pairedDestination}`,
-      status: "In Transit",
-      lat: coords[0],
-      lng: coords[1]
-    };
+    // Reuse or create dynamic shipment
+    const existingDyn = shipments.find(s => s.origin === disruptedLocation);
+    if (existingDyn) {
+      affectedShipments = [existingDyn];
+    } else {
+      const dynamicShipment = {
+        id: dynamicId,
+        medicine: "Critical Oncology & Vaccines",
+        priority: "Critical",
+        origin: disruptedLocation,
+        destination: pairedDestination,
+        route: `${disruptedLocation} → Central Corridor → ${pairedDestination}`,
+        status: "In Transit",
+        lat: coords[0],
+        lng: coords[1]
+      };
 
-    // Add to shared shipments list so impact, scenario, rerouting agents find it
-    shipments.push(dynamicShipment);
-
-    // Register with trackingStore so Network Map can plot it
-    registerShipmentInTracking(dynamicShipment);
-
-    affectedShipments = [dynamicShipment];
+      shipments.push(dynamicShipment);
+      registerShipmentInTracking(dynamicShipment);
+      affectedShipments = [dynamicShipment];
+    }
   }
 
-  // Calculate severity based on shipment priority or disruption keywords
+  // Determine severity based on disruption text and affected priority
   let severity = "MEDIUM";
-
-  if (
+  const isCriticalKeyword =
     lowerText.includes("flood") ||
-    lowerText.includes("closure") ||
-    lowerText.includes("closed") ||
     lowerText.includes("storm") ||
+    lowerText.includes("closed") ||
+    lowerText.includes("closure") ||
     lowerText.includes("cyclone") ||
     lowerText.includes("strike") ||
-    affectedShipments.some((s) => s.priority === "Critical")
-  ) {
+    lowerText.includes("accident") ||
+    lowerText.includes("emergency") ||
+    lowerText.includes("landslide");
+
+  if (isCriticalKeyword || affectedShipments.some((s) => s.priority === "Critical")) {
     severity = "CRITICAL";
   } else if (
     lowerText.includes("delay") ||
     lowerText.includes("congestion") ||
+    lowerText.includes("fog") ||
     affectedShipments.some((s) => s.priority === "High")
   ) {
     severity = "HIGH";
@@ -155,18 +202,16 @@ function detectDisruption(disruption) {
     disruption: disruptionText,
     disrupted_location: disruptedLocation,
     severity,
-    affected_shipments: affectedShipments.map((shipment) => shipment.id),
-    affected_shipment_details: affectedShipments.map((shipment) => ({
-      shipment_id: shipment.id,
-      medicine: shipment.medicine,
-      priority: shipment.priority,
-      origin: shipment.origin,
-      destination: shipment.destination,
-      route: shipment.route
+    affected_shipments: affectedShipments.map((s) => s.id),
+    affected_shipment_details: affectedShipments.map((s) => ({
+      shipment_id: s.id,
+      medicine: s.medicine,
+      priority: s.priority,
+      origin: s.origin,
+      destination: s.destination,
+      route: s.route
     })),
-    reason: disruptedLocation
-      ? `${disruptedLocation} hub / corridor is disrupted`
-      : "Supply chain corridor experiencing operational disruption"
+    reason: `${disruptedLocation} logistics hub / transit corridor is disrupted`
   };
 }
 

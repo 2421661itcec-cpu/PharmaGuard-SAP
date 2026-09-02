@@ -548,7 +548,7 @@ function renderImpact(result) {
 
 
       const coverageText =
-        coverage !== undefined
+        coverage !== undefined && coverage !== null
           ? `${coverage} days`
           : "—";
 
@@ -2334,9 +2334,18 @@ document.addEventListener(
     hide("impactSection");
     hide("scenarioSection");
     hide("approvalSection");
-hide("modifySection");
+    hide("modifySection");
     hide("executionSection");
 
+    const disruptionInput = $("disruptionInput");
+    if (disruptionInput) {
+      disruptionInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          analyzeDisruption();
+        }
+      });
+    }
 
     console.log(
       "PharmaGuard Command Center loaded."
