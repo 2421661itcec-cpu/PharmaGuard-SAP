@@ -71,6 +71,16 @@
         <button
           type="button"
           class="nav-item active"
+          id="navOverview"
+        >
+          <span>🏠</span>
+          Overview
+        </button>
+
+        <button
+          type="button"
+          class="nav-item"
+          id="navCommandCenter"
         >
           <span>◉</span>
           Command Center
@@ -79,6 +89,7 @@
         <button
           type="button"
           class="nav-item"
+          id="navShipments"
         >
           <span>◈</span>
           Shipments
@@ -87,6 +98,7 @@
         <button
           type="button"
           class="nav-item"
+          id="navNetworkMap"
         >
           <span>⊙</span>
           Network Map
@@ -95,6 +107,7 @@
         <button
           type="button"
           class="nav-item"
+          id="navInventory"
         >
           <span>▣</span>
           Inventory
@@ -103,6 +116,7 @@
         <button
           type="button"
           class="nav-item"
+          id="navRecoveryHistory"
         >
           <span>◎</span>
           Recovery History
@@ -111,6 +125,7 @@
         <button
           type="button"
           class="nav-item"
+          id="navMedicineMaster"
         >
           <span>💊</span>
           Medicine Master
@@ -118,7 +133,16 @@
 
       </nav>
 
-
+      <div class="sidebar-cookie-wrap">
+        <button
+          type="button"
+          class="sidebar-cookie-btn"
+          onclick="openCookieModal()"
+        >
+          <span>🍪</span>
+          Cookie Settings
+        </button>
+      </div>
 
       <div class="system-status">
 
@@ -126,7 +150,7 @@
 
         <div>
           <strong>System Operational</strong>
-          <span>All agents online</span>
+          <span>All 7 agents online</span>
         </div>
 
       </div>
@@ -148,16 +172,16 @@
 
         <div>
 
-          <div class="eyebrow">
+          <div class="eyebrow" id="topbarEyebrow">
             AI-POWERED SUPPLY CHAIN CONTROL
           </div>
 
-          <h1>
-            Command Center
+          <h1 id="topbarTitle">
+            Platform Overview
           </h1>
 
-          <p>
-            Detect. Analyze. Decide. Recover.
+          <p id="topbarSubtitle">
+            Next-Gen Pharmaceutical Supply Chain Resilience
           </p>
 
         </div>
@@ -202,11 +226,228 @@
 
 
       <!-- ==================================================
+           PLATFORM OVERVIEW / INTRODUCTION VIEW (DEFAULT)
+      =================================================== -->
+
+      <div id="overviewView" class="overview-view">
+
+        <!-- Hero Section -->
+        <section class="hero-section">
+
+          <div class="hero-badge">
+            <span class="hero-pulse"></span>
+            <span>Autonomous Healthcare Supply Chain • 7 Specialized AI Engines</span>
+          </div>
+
+          <h1 class="hero-title">
+            Next-Generation Pharmaceutical <br>
+            <span class="gradient-text">Supply Chain Resilience</span>
+          </h1>
+
+          <p class="hero-subtitle">
+            Safeguarding life-critical medicines and temperature-sensitive cold chains across India with autonomous disruption sensing, dynamic shortage-driven routing, and real-time human governance.
+          </p>
+
+          <div class="hero-actions">
+
+            <button
+              type="button"
+              class="hero-btn-primary"
+              onclick="showCommandCenter()"
+            >
+              <span>⚡</span>
+              Launch Disruption Solver
+            </button>
+
+            <button
+              type="button"
+              class="hero-btn-secondary"
+              onclick="showNetworkMap()"
+            >
+              <span>🗺️</span>
+              Live Fleet GPS Map
+            </button>
+
+            <button
+              type="button"
+              class="hero-btn-secondary"
+              onclick="loadInventory()"
+            >
+              <span>📦</span>
+              State Warehouse Stock
+            </button>
+
+          </div>
+
+          <!-- Quick Platform Metrics Strip -->
+          <div class="hero-stats-strip">
+
+            <div class="stat-item">
+              <div class="stat-num">7</div>
+              <div class="stat-desc">Active AI Agents</div>
+            </div>
+
+            <div class="stat-divider"></div>
+
+            <div class="stat-item">
+              <div class="stat-num">19</div>
+              <div class="stat-desc">State Mega-Warehouses</div>
+            </div>
+
+            <div class="stat-divider"></div>
+
+            <div class="stat-item">
+              <div class="stat-num">130+</div>
+              <div class="stat-desc">Indian Municipalities</div>
+            </div>
+
+            <div class="stat-divider"></div>
+
+            <div class="stat-item">
+              <div class="stat-num">2°C – 8°C</div>
+              <div class="stat-desc">Cold-Chain Safeguards</div>
+            </div>
+
+            <div class="stat-divider"></div>
+
+            <div class="stat-item">
+              <div class="stat-num">100%</div>
+              <div class="stat-desc">Human Governance</div>
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- Core Capabilities Gateway Grid -->
+        <section class="capabilities-section">
+
+          <div class="section-title-wrap">
+            <div class="section-kicker">CORE PLATFORM CAPABILITIES</div>
+            <h2>Autonomous Operations Gateway</h2>
+            <p>Explore specialized resilience engines designed for high-consequence pharmaceutical logistics.</p>
+          </div>
+
+          <div class="gateway-grid">
+
+            <div class="gateway-card" onclick="showCommandCenter()">
+              <div class="gateway-icon-badge" style="background:#eff6ff;color:#1d4ed8;">⚡</div>
+              <h3>Disruption Sensing & Solver</h3>
+              <p>Natural language incident ingestion across road, rail, and air freight with real-time multi-criteria recovery simulation.</p>
+              <div class="gateway-link">Resolve Disruption ➔</div>
+            </div>
+
+            <div class="gateway-card" onclick="showNetworkMap()">
+              <div class="gateway-icon-badge" style="background:#f5f3ff;color:#6d28d9;">🗺️</div>
+              <h3>Live Fleet Telematics Map</h3>
+              <p>Interactive GPS tracking with shortest curved geodesic arcs, cold-chain temperature telemetry, and warehouse pins.</p>
+              <div class="gateway-link">Track Live Shipments ➔</div>
+            </div>
+
+            <div class="gateway-card" onclick="loadInventory()">
+              <div class="gateway-icon-badge" style="background:#ecfdf5;color:#047857;">📦</div>
+              <h3>Multi-Echelon State Inventory</h3>
+              <p>Real-time visibility into Days of Inventory Coverage (DoIC) and automated safety-buffer rebalancing between regional depots.</p>
+              <div class="gateway-link">View Stock Coverage ➔</div>
+            </div>
+
+            <div class="gateway-card" onclick="loadShipments()">
+              <div class="gateway-icon-badge" style="background:#fffbeb;color:#b45309;">🚚</div>
+              <h3>Active Fleet Shipments</h3>
+              <p>Comprehensive registry of in-transit life-saving drugs, clinical priority designations, origin-destination nodes, and ETAs.</p>
+              <div class="gateway-link">Inspect Shipments ➔</div>
+            </div>
+
+            <div class="gateway-card" onclick="showRecoveryHistory()">
+              <div class="gateway-icon-badge" style="background:#fdf2f8;color:#be185d;">📋</div>
+              <h3>Recovery History & Audit Trail</h3>
+              <p>Full regulatory audit ledger recording human decisions, modified corridors, hours saved, and critical stock rescues.</p>
+              <div class="gateway-link">Review Audit Logs ➔</div>
+            </div>
+
+            <div class="gateway-card" onclick="loadMedicineMaster()">
+              <div class="gateway-icon-badge" style="background:#f0fdfa;color:#0f766e;">💊</div>
+              <h3>Medicine Master Database</h3>
+              <p>Clinical criticality tiering, thermal tolerances, and WHO-prequalified therapeutic equivalents for supply resilience.</p>
+              <div class="gateway-link">Browse Medicines ➔</div>
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- 7-Agent Architecture Walkthrough -->
+        <section class="architecture-walkthrough-section">
+
+          <div class="section-title-wrap">
+            <div class="section-kicker">AUTONOMOUS MULTI-AGENT PIPELINE</div>
+            <h2>How PharmaGuard Solves Supply Chain Crises</h2>
+            <p>Seven specialized AI agents collaborate sequentially to safeguard vulnerable medicine deliveries.</p>
+          </div>
+
+          <div class="pipeline-flow-cards">
+
+            <div class="pipe-step">
+              <div class="pipe-num">01</div>
+              <h4>Disruption Sensing</h4>
+              <p>Ingests weather hazards, highway closures, or facility halts and resolves exact Indian municipal nodes.</p>
+            </div>
+
+            <div class="pipe-arrow">➔</div>
+
+            <div class="pipe-step">
+              <div class="pipe-num">02</div>
+              <h4>Impact Analysis</h4>
+              <p>Evaluates cargo spoilage time windows and calculates hospital Days of Inventory Coverage (DoIC).</p>
+            </div>
+
+            <div class="pipe-arrow">➔</div>
+
+            <div class="pipe-step">
+              <div class="pipe-num">03</div>
+              <h4>Scenario Planning</h4>
+              <p>Simulates multimodal recovery candidates (Highway, Hub Diversion, Air Freight) with utility ranking.</p>
+            </div>
+
+            <div class="pipe-arrow">➔</div>
+
+            <div class="pipe-step highlight">
+              <div class="pipe-num">04</div>
+              <h4>Human Decision</h4>
+              <p>Supply Chain Manager reviews recommendations and retains authority to approve, modify, or reject.</p>
+            </div>
+
+            <div class="pipe-arrow">➔</div>
+
+            <div class="pipe-step">
+              <div class="pipe-num">05</div>
+              <h4>Dynamic Reroute</h4>
+              <p>Transmits new route corridors and updates live GPS telematics along curved geodesic trajectories.</p>
+            </div>
+
+            <div class="pipe-arrow">➔</div>
+
+            <div class="pipe-step">
+              <div class="pipe-num">06</div>
+              <h4>Stock Rebalance</h4>
+              <p>Mobilizes emergency inventory transfers from nearest surplus state mega-warehouses to deficit hospitals.</p>
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+
+      <!-- ==================================================
            COMMAND CENTER VIEW
            (original content — untouched)
       =================================================== -->
 
-      <div id="commandCenterView">
+      <div id="commandCenterView" style="display:none;">
 
         <!-- ==================================================
              OPERATIONAL INTELLIGENCE
@@ -216,6 +457,7 @@
           id="intelligencePanel"
           class="intelligence-panel"
         >
+
 
           <div class="intelligence-heading">
 
@@ -1265,6 +1507,123 @@
 
     </main>
 
+  <!-- ==================================================
+       COOKIE CONSENT BANNER
+  =================================================== -->
+  <div id="cookieBanner" class="cookie-banner hidden">
+    <div class="cookie-content">
+      <div class="cookie-icon">🍪</div>
+      <div class="cookie-text">
+        <strong>Cookie & Operational Telemetry Notice</strong>
+        <p>
+          PharmaGuard uses essential cookies and local storage to preserve real-time cold-chain GPS streams, maintain supply chain session states, and log human audit compliance. We do not use third-party tracking or advertising cookies.
+        </p>
+      </div>
+    </div>
+    <div class="cookie-actions">
+      <button
+        type="button"
+        class="cookie-btn-secondary"
+        onclick="openCookieModal()"
+      >
+        Preferences
+      </button>
+      <button
+        type="button"
+        class="cookie-btn-secondary"
+        onclick="setCookieConsent('essential')"
+      >
+        Essential Only
+      </button>
+      <button
+        type="button"
+        class="cookie-btn-primary"
+        onclick="setCookieConsent('accepted')"
+      >
+        Accept All
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ==================================================
+       COOKIE PREFERENCES MODAL
+  =================================================== -->
+  <div id="cookieModal" class="cookie-modal-backdrop hidden">
+    <div class="cookie-modal-card">
+      <div class="cookie-modal-header">
+        <div>
+          <div class="section-kicker">GOVERNANCE & PRIVACY</div>
+          <h3>Cookie & Telemetry Preferences</h3>
+        </div>
+        <button
+          type="button"
+          class="cookie-modal-close"
+          onclick="closeCookieModal()"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="cookie-modal-body">
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">
+          Configure local browser storage parameters for cold-chain telematics, operational state, and regulatory audit ledgers.
+        </p>
+
+        <div class="cookie-pref-item">
+          <div class="cookie-pref-info">
+            <strong>Strictly Essential System State</strong>
+            <p>Required to maintain supply chain session identity, human decision authorization, and recovery form state.</p>
+          </div>
+          <div class="cookie-pref-status">
+            <span class="badge-always-active">Always Active</span>
+          </div>
+        </div>
+
+        <div class="cookie-pref-item">
+          <div class="cookie-pref-info">
+            <strong>Live Telematics & GPS Caching</strong>
+            <p>Stores vehicle waypoint geometry and Leaflet map cache to optimize smooth real-time telemetry streaming.</p>
+          </div>
+          <div class="cookie-pref-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" id="prefTelematics" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="cookie-pref-item">
+          <div class="cookie-pref-info">
+            <strong>Regulatory Audit & Recovery Ledger</strong>
+            <p>Stores local audit trail filters, recent disruption searches, and verified historical recovery logs.</p>
+          </div>
+          <div class="cookie-pref-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" id="prefAudit" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="cookie-modal-footer">
+        <button
+          type="button"
+          class="secondary-button"
+          onclick="closeCookieModal()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="primary-button"
+          onclick="saveCookiePreferences()"
+        >
+          Save Preferences
+        </button>
+      </div>
+    </div>
   </div>
 
 
@@ -1272,6 +1631,7 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <script src="/app.js"></script>
+
 
 </body>
 

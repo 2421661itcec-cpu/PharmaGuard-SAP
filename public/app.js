@@ -2408,56 +2408,42 @@ document.addEventListener(
 
 
     // ------------------------------------------------
-    // COMMAND CENTER CONTAINER
-    // Use the pre-built #commandCenterView from HTML.
-    // If not found (old HTML), fall back to dynamic.
+    // CONTAINERS & TOPBAR REFS
     // ------------------------------------------------
+
+    let overviewView =
+      document.getElementById("overviewView");
 
     let commandCenterView =
       document.getElementById("commandCenterView");
 
-    if (!commandCenterView) {
-      commandCenterView =
-        document.createElement("div");
-
-      commandCenterView.id =
-        "commandCenterView";
-
-      commandCenterView.style.display =
-        "contents";
-
-      while (main.firstChild) {
-        commandCenterView.appendChild(main.firstChild);
-      }
-
-      main.appendChild(commandCenterView);
-    } else {
-      commandCenterView.style.display = "contents";
-    }
-
-
-    // ------------------------------------------------
-    // PG4 PAGE CONTAINER
-    // Use the pre-built #pageView from HTML.
-    // If not found (old HTML), fall back to dynamic.
-    // ------------------------------------------------
-
     let pageView =
       document.getElementById("pageView");
+
+    const topbarEyebrow =
+      document.getElementById("topbarEyebrow");
+
+    const topbarTitle =
+      document.getElementById("topbarTitle");
+
+    const topbarSubtitle =
+      document.getElementById("topbarSubtitle");
+
+    function updateTopbar(eyebrow, title, subtitle) {
+      if (topbarEyebrow && eyebrow) topbarEyebrow.textContent = eyebrow;
+      if (topbarTitle && title) topbarTitle.textContent = title;
+      if (topbarSubtitle && subtitle) topbarSubtitle.textContent = subtitle;
+    }
 
     if (!pageView) {
       pageView =
         document.createElement("div");
-
-      pageView.id = "pg4PageView";
+      pageView.id = "pageView";
       pageView.className = "pg4-page-view";
       pageView.style.display = "none";
-
       main.appendChild(pageView);
-    } else {
-      pageView.className = "pg4-page-view";
-      pageView.style.display = "none";
     }
+
 
 
     // ------------------------------------------------
@@ -2746,30 +2732,78 @@ document.addEventListener(
 
 
     // ------------------------------------------------
-    // COMMAND CENTER
+    // OVERVIEW (INTRODUCTION)
     // ------------------------------------------------
 
-    function showCommandCenter() {
-
-      commandCenterView.style.display =
-        "contents";
-
-      pageView.style.display =
-        "none";
-
+    function showOverview() {
       setActiveNav(0);
+
+      if (overviewView) {
+        overviewView.style.display = "block";
+      }
+
+      if (commandCenterView) {
+        commandCenterView.style.display = "none";
+      }
+
+      if (pageView) {
+        pageView.style.display = "none";
+      }
+
+      updateTopbar(
+        "AI-POWERED SUPPLY CHAIN CONTROL",
+        "Platform Overview",
+        "Next-Gen Pharmaceutical Supply Chain Resilience"
+      );
 
       window.scrollTo({
         top: 0,
         behavior: "smooth"
       });
 
-      // Clean up map if active
       if (window._pgMapCleanup) {
         window._pgMapCleanup();
+        window._pgMapCleanup = null;
+      }
+    }
+
+
+    // ------------------------------------------------
+    // COMMAND CENTER
+    // ------------------------------------------------
+
+    function showCommandCenter() {
+      setActiveNav(1);
+
+      if (overviewView) {
+        overviewView.style.display = "none";
       }
 
+      if (commandCenterView) {
+        commandCenterView.style.display = "contents";
+      }
+
+      if (pageView) {
+        pageView.style.display = "none";
+      }
+
+      updateTopbar(
+        "AI-POWERED SUPPLY CHAIN CONTROL",
+        "Command Center",
+        "Detect. Analyze. Decide. Recover."
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+
+      if (window._pgMapCleanup) {
+        window._pgMapCleanup();
+        window._pgMapCleanup = null;
+      }
     }
+
 
 
     // ------------------------------------------------
@@ -2923,7 +2957,11 @@ document.addEventListener(
 
     async function loadShipments() {
 
-      setActiveNav(1);
+      setActiveNav(2);
+
+      if (overviewView) {
+        overviewView.style.display = "none";
+      }
 
       commandCenterView.style.display =
         "none";
@@ -2931,10 +2969,18 @@ document.addEventListener(
       pageView.style.display =
         "block";
 
+      updateTopbar(
+        "FLEET OPERATIONS",
+        "Shipments",
+        "Live shipment visibility across the pharmaceutical supply network."
+      );
+
       // Clean up map if active
       if (window._pgMapCleanup) {
         window._pgMapCleanup();
+        window._pgMapCleanup = null;
       }
+
 
 
       renderPageShell(
@@ -3252,7 +3298,11 @@ document.addEventListener(
 
     function showNetworkMap() {
 
-      setActiveNav(2);
+      setActiveNav(3);
+
+      if (overviewView) {
+        overviewView.style.display = "none";
+      }
 
       commandCenterView.style.display =
         "none";
@@ -3260,11 +3310,18 @@ document.addEventListener(
       pageView.style.display =
         "block";
 
+      updateTopbar(
+        "GEOSPATIAL FLEET TRACKING",
+        "Network Map",
+        "Real-time pharmaceutical supply routes with initial/final destinations, state mega-warehouses, and live vehicle tracking."
+      );
+
       // Clean up any previous map instance
       if (window._pgMapCleanup) {
         window._pgMapCleanup();
         window._pgMapCleanup = null;
       }
+
 
       renderPageShell(
         "SIMULATED LIVE TRACKING",
@@ -3831,7 +3888,11 @@ document.addEventListener(
 
     async function loadInventory() {
 
-      setActiveNav(3);
+      setActiveNav(4);
+
+      if (overviewView) {
+        overviewView.style.display = "none";
+      }
 
       commandCenterView.style.display =
         "none";
@@ -3839,10 +3900,18 @@ document.addEventListener(
       pageView.style.display =
         "block";
 
+      updateTopbar(
+        "STOCK CONTROL",
+        "Inventory",
+        "Medicine stock position and safety-buffer visibility by location."
+      );
+
       // Clean up map if active
       if (window._pgMapCleanup) {
         window._pgMapCleanup();
+        window._pgMapCleanup = null;
       }
+
 
 
       renderPageShell(
@@ -4198,14 +4267,26 @@ document.addEventListener(
     // ------------------------------------------------
 
     async function showRecoveryHistory() {
-      setActiveNav(4);
+      setActiveNav(5);
+
+      if (overviewView) {
+        overviewView.style.display = "none";
+      }
+
       commandCenterView.style.display = "none";
       pageView.style.display = "block";
+
+      updateTopbar(
+        "RECOVERY OPERATIONS",
+        "Recovery History",
+        "Review completed human decisions, multi-agent rerouting, and inventory rebalancing executions."
+      );
 
       if (window._pgMapCleanup) {
         window._pgMapCleanup();
         window._pgMapCleanup = null;
       }
+
 
       renderPageShell(
         "RECOVERY OPERATIONS",
@@ -4470,7 +4551,11 @@ document.addEventListener(
 
     async function loadMedicineMaster() {
 
-      setActiveNav(5);
+      setActiveNav(6);
+
+      if (overviewView) {
+        overviewView.style.display = "none";
+      }
 
       commandCenterView.style.display =
         "none";
@@ -4478,11 +4563,18 @@ document.addEventListener(
       pageView.style.display =
         "block";
 
+      updateTopbar(
+        "CLINICAL COMPLIANCE",
+        "Medicine Master",
+        "Pharmaceutical master data, thermal thresholds, and therapeutic alternatives."
+      );
+
       // Clean up map if active
       if (window._pgMapCleanup) {
         window._pgMapCleanup();
         window._pgMapCleanup = null;
       }
+
 
       try {
 
@@ -4635,63 +4727,113 @@ document.addEventListener(
 
     // ------------------------------------------------
     // NAVIGATION EVENTS
-    // navItems[0] = Command Center
-    // navItems[1] = Shipments
-    // navItems[2] = Network Map
-    // navItems[3] = Inventory
-    // navItems[4] = Recovery History
-    // navItems[5] = Medicine Master
+    // navItems[0] = Overview
+    // navItems[1] = Command Center
+    // navItems[2] = Shipments
+    // navItems[3] = Network Map
+    // navItems[4] = Inventory
+    // navItems[5] = Recovery History
+    // navItems[6] = Medicine Master
     // ------------------------------------------------
 
-    navItems[0]
-      .addEventListener(
-        "click",
-        showCommandCenter
-      );
+    if (navItems[0]) {
+      navItems[0].addEventListener("click", showOverview);
+    }
 
-
-    navItems[1]
-      .addEventListener(
-        "click",
-        loadShipments
-      );
-
+    if (navItems[1]) {
+      navItems[1].addEventListener("click", showCommandCenter);
+    }
 
     if (navItems[2]) {
-      navItems[2]
-        .addEventListener(
-          "click",
-          showNetworkMap
-        );
+      navItems[2].addEventListener("click", loadShipments);
     }
-
 
     if (navItems[3]) {
-      navItems[3]
-        .addEventListener(
-          "click",
-          loadInventory
-        );
+      navItems[3].addEventListener("click", showNetworkMap);
     }
-
 
     if (navItems[4]) {
-      navItems[4]
-        .addEventListener(
-          "click",
-          showRecoveryHistory
-        );
+      navItems[4].addEventListener("click", loadInventory);
     }
-
 
     if (navItems[5]) {
-      navItems[5]
-        .addEventListener(
-          "click",
-          loadMedicineMaster
-        );
+      navItems[5].addEventListener("click", showRecoveryHistory);
     }
+
+    if (navItems[6]) {
+      navItems[6].addEventListener("click", loadMedicineMaster);
+    }
+
+
+    // ------------------------------------------------
+    // COOKIE CONSENT & PREFERENCES
+    // ------------------------------------------------
+
+    function initCookieConsent() {
+      const consent = localStorage.getItem("pharmaguard_cookie_consent");
+      const banner = document.getElementById("cookieBanner");
+      if (!consent && banner) {
+        setTimeout(() => {
+          banner.classList.remove("hidden");
+        }, 700);
+      }
+    }
+
+    function setCookieConsent(type) {
+      localStorage.setItem("pharmaguard_cookie_consent", type);
+      const banner = document.getElementById("cookieBanner");
+      if (banner) {
+        banner.classList.add("hidden");
+      }
+      showToast(type === "accepted" ? "Cookie preferences saved: All telemetry active" : "Essential session cookies active");
+    }
+
+    function openCookieModal() {
+      const modal = document.getElementById("cookieModal");
+      if (modal) {
+        modal.classList.remove("hidden");
+      }
+    }
+
+    function closeCookieModal() {
+      const modal = document.getElementById("cookieModal");
+      if (modal) {
+        modal.classList.add("hidden");
+      }
+    }
+
+    function saveCookiePreferences() {
+      const telematics = document.getElementById("prefTelematics")?.checked;
+      const audit = document.getElementById("prefAudit")?.checked;
+      localStorage.setItem("pharmaguard_cookie_consent", "custom");
+      localStorage.setItem("pharmaguard_cookie_telematics", telematics ? "true" : "false");
+      localStorage.setItem("pharmaguard_cookie_audit", audit ? "true" : "false");
+      closeCookieModal();
+      const banner = document.getElementById("cookieBanner");
+      if (banner) {
+        banner.classList.add("hidden");
+      }
+      showToast("Privacy and telemetry preferences saved.");
+    }
+
+    // Expose handlers globally for template and hero button access
+    window.showOverview = showOverview;
+    window.showCommandCenter = showCommandCenter;
+    window.loadShipments = loadShipments;
+    window.showNetworkMap = showNetworkMap;
+    window.loadInventory = loadInventory;
+    window.showRecoveryHistory = showRecoveryHistory;
+    window.loadMedicineMaster = loadMedicineMaster;
+    window.openCookieModal = openCookieModal;
+    window.closeCookieModal = closeCookieModal;
+    window.setCookieConsent = setCookieConsent;
+    window.saveCookiePreferences = saveCookiePreferences;
+
+    // INITIAL LANDING: Display Overview / Introduction by default
+    showOverview();
+    initCookieConsent();
 
   }
 );
+
 
