@@ -3333,6 +3333,12 @@ document.addEventListener(
               <span class="nm-live-dot"></span>
               <span class="nm-live-label">LIVE PHARMA FLEET TRACKING</span>
               <div class="nm-toolbar">
+                <button type="button" id="nmFitIndiaBtn" class="nm-toggle-btn active">
+                  🇮🇳 All India (19 Warehouses)
+                </button>
+                <button type="button" id="nmFitShipmentsBtn" class="nm-toggle-btn">
+                  🚚 Focus Active Routes
+                </button>
                 <button type="button" id="nmToggleHubsBtn" class="nm-toggle-btn active">
                   🏢 State Mega-Hubs (19)
                 </button>
@@ -3340,6 +3346,7 @@ document.addEventListener(
               </div>
             </div>
             <div id="nmMapContainer" class="nm-map-container"></div>
+
             <div class="nm-legend">
               <div class="nm-legend-item">
                 <span class="nm-legend-dot nm-dot-origin"></span> 🟢 Origin Hub
@@ -3447,6 +3454,26 @@ document.addEventListener(
         });
       }
 
+      const fitIndiaBtn = document.getElementById("nmFitIndiaBtn");
+      const fitShipmentsBtn = document.getElementById("nmFitShipmentsBtn");
+
+      if (fitIndiaBtn) {
+        fitIndiaBtn.addEventListener("click", () => {
+          if (window._nmFitAllIndia) window._nmFitAllIndia();
+          fitIndiaBtn.classList.add("active");
+          if (fitShipmentsBtn) fitShipmentsBtn.classList.remove("active");
+        });
+      }
+
+      if (fitShipmentsBtn) {
+        fitShipmentsBtn.addEventListener("click", () => {
+          if (window._nmFitShipments) window._nmFitShipments();
+          fitShipmentsBtn.classList.add("active");
+          if (fitIndiaBtn) fitIndiaBtn.classList.remove("active");
+        });
+      }
+
+
       function markerColor(priority, status) {
         if (status && String(status).toLowerCase() === "rerouted") {
           return "#7c3aed"; // purple
@@ -3481,61 +3508,56 @@ document.addEventListener(
       }
 
       // 2. Initial Origin Point Icon
-      function createOriginIcon() {
+      function createOriginIcon(t) {
+        const originName = t?.origin || "Origin";
         return L.divIcon({
-          className: "",
+          className: "leaflet-endpoint-div-icon",
           html: `
-            <div class="nm-pin nm-origin-pin" style="
-              width: 28px; height: 28px;
-              display: flex; align-items: center; justify-content: center;
-              font-size: 14px; cursor: pointer;
-            ">
-              🟢
+            <div class="nm-endpoint-marker nm-origin-badge" title="Origin Dispatch: ${escapeHtml(originName)}">
+              <span>🟢</span>
+              <span>${escapeHtml(originName)}</span>
             </div>
           `,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
-          popupAnchor: [0, -16]
+          iconSize: [84, 26],
+          iconAnchor: [42, 13],
+          popupAnchor: [0, -15]
         });
       }
 
       // 3. Final Destination Point Icon
-      function createDestinationIcon() {
+      function createDestinationIcon(t) {
+        const destName = t?.destination || "Destination";
         return L.divIcon({
-          className: "",
+          className: "leaflet-endpoint-div-icon",
           html: `
-            <div class="nm-pin nm-dest-pin" style="
-              width: 28px; height: 28px;
-              display: flex; align-items: center; justify-content: center;
-              font-size: 14px; cursor: pointer;
-            ">
-              🏁
+            <div class="nm-endpoint-marker nm-dest-badge" title="Final Destination: ${escapeHtml(destName)}">
+              <span>🏁</span>
+              <span>${escapeHtml(destName)}</span>
             </div>
           `,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
-          popupAnchor: [0, -16]
+          iconSize: [92, 26],
+          iconAnchor: [46, 13],
+          popupAnchor: [0, -15]
         });
       }
 
       // 4. State Mega-Warehouse Hub Icon
-      function createHubIcon() {
+      function createHubIcon(wh) {
+        const cityName = wh?.city || (wh?.hub_name ? wh.hub_name.split(" ")[0] : "Warehouse");
         return L.divIcon({
-          className: "",
+          className: "leaflet-wh-div-icon",
           html: `
-            <div class="nm-pin nm-hub-pin" style="
-              width: 24px; height: 24px;
-              display: flex; align-items: center; justify-content: center;
-              font-size: 12px; cursor: pointer; opacity: 0.9;
-            ">
-              🏢
+            <div class="nm-warehouse-marker" title="${escapeHtml(wh?.hub_name || 'State Strategic Mega-Warehouse')}">
+              <span class="nm-wh-badge-icon">🏢</span>
+              <span class="nm-wh-badge-label">${escapeHtml(cityName)}</span>
             </div>
           `,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-          popupAnchor: [0, -14]
+          iconSize: [88, 26],
+          iconAnchor: [44, 13],
+          popupAnchor: [0, -15]
         });
       }
+
 
       const vehicleMarkers = {};
       const routePolylines = {};
@@ -3640,8 +3662,17 @@ document.addEventListener(
               <div>Temp Control: <strong>${escapeHtml(wh.cold_storage_temp)}</strong></div>
               <div>Status: <strong style="color:#16a34a;">${escapeHtml(wh.status)}</strong></div>
             </div>
+            <button
+              type="button"
+              class="primary-button"
+              style="margin-top:10px;padding:6px 12px;font-size:11.5px;width:100%;border-radius:8px;font-weight:700;"
+              onclick="loadInventory()"
+            >
+              📦 View Warehouse Inventory
+            </button>
           </div>
         `;
+
       }
 
       // Smooth Curved Geodesic Path Generator for Road & Flight in all cases
@@ -3736,6 +3767,7 @@ document.addEventListener(
 
 
       // Draw Origin and Destination endpoints
+      // Draw Origin and Destination endpoints
       function drawEndpoints(t) {
         const originCoords = t.origin_coords;
         const destCoords = t.destination_coords;
@@ -3744,14 +3776,14 @@ document.addEventListener(
         const destKey = `${t.shipment_id}-dest`;
 
         if (originCoords && !endpointMarkers[originKey]) {
-          const originMarker = L.marker(originCoords, { icon: createOriginIcon() })
+          const originMarker = L.marker(originCoords, { icon: createOriginIcon(t) })
             .addTo(endpointMarkersGroup)
             .bindPopup(formatOriginPopup(t), { maxWidth: 280 });
           endpointMarkers[originKey] = originMarker;
         }
 
         if (destCoords && !endpointMarkers[destKey]) {
-          const destMarker = L.marker(destCoords, { icon: createDestinationIcon() })
+          const destMarker = L.marker(destCoords, { icon: createDestinationIcon(t) })
             .addTo(endpointMarkersGroup)
             .bindPopup(formatDestinationPopup(t), { maxWidth: 280 });
           endpointMarkers[destKey] = destMarker;
@@ -3763,7 +3795,7 @@ document.addEventListener(
         if (!t.latitude || !t.longitude) return;
         const latlng = [t.latitude, t.longitude];
 
-        // Draw/update Zomato-style route path line
+        // Draw/update route path line
         drawOrUpdateRouteLine(t);
 
         // Draw initial & final destination pins
@@ -3786,13 +3818,14 @@ document.addEventListener(
         }
       }
 
-      // Render State Mega-Warehouses layer
+      // Render State Mega-Warehouses layer with permanent visible labels
       function renderStateWarehouses(warehousesList) {
+        stateHubsGroup.clearLayers();
         (warehousesList || []).forEach(wh => {
           if (!wh.lat || !wh.lng) return;
-          L.marker([wh.lat, wh.lng], { icon: createHubIcon() })
+          L.marker([wh.lat, wh.lng], { icon: createHubIcon(wh) })
             .addTo(stateHubsGroup)
-            .bindPopup(formatWarehousePopup(wh), { maxWidth: 280 });
+            .bindPopup(formatWarehousePopup(wh), { maxWidth: 300 });
         });
       }
 
@@ -3806,28 +3839,47 @@ document.addEventListener(
       // Initial paint from REST API
       api("/api/tracking/all")
         .then(result => {
-          // Render State Mega-Warehouses across India
-          if (result.warehouses && Array.isArray(result.warehouses)) {
-            renderStateWarehouses(result.warehouses);
+          const warehouses = result.warehouses || [];
+
+          // 1. Render all 19 State Mega-Warehouses across India
+          if (warehouses.length > 0) {
+            renderStateWarehouses(warehouses);
           }
 
-          // Render active shipments with Zomato route paths
+          // 2. Render active shipments with curved geodesic paths
           const list = result.tracking || [];
           list.forEach(placeOrMoveVehicle);
 
-          if (list.length > 0) {
-            const allPoints = [];
-            list.forEach(t => {
-              if (t.latitude && t.longitude) allPoints.push([t.latitude, t.longitude]);
-              if (t.origin_coords) allPoints.push(t.origin_coords);
-              if (t.destination_coords) allPoints.push(t.destination_coords);
-            });
+          // Build point bounds
+          const shipmentPoints = [];
+          list.forEach(t => {
+            if (t.latitude && t.longitude) shipmentPoints.push([t.latitude, t.longitude]);
+            if (t.origin_coords) shipmentPoints.push(t.origin_coords);
+            if (t.destination_coords) shipmentPoints.push(t.destination_coords);
+          });
 
-            if (allPoints.length > 0) {
-              map.fitBounds(allPoints, { padding: [50, 50] });
+          const warehousePoints = warehouses
+            .filter(wh => wh.lat && wh.lng)
+            .map(wh => [wh.lat, wh.lng]);
+
+          window._nmFitAllIndia = () => {
+            if (warehousePoints.length > 0) {
+              map.fitBounds(warehousePoints, { padding: [45, 45] });
+            } else {
+              map.setView([22.8, 79.5], 5);
             }
-          }
+          };
+
+          window._nmFitShipments = () => {
+            if (shipmentPoints.length > 0) {
+              map.fitBounds(shipmentPoints, { padding: [50, 50] });
+            }
+          };
+
+          // Default initial view: show all India with warehouses and routes
+          window._nmFitAllIndia();
         })
+
         .catch(() => {
           // Non-fatal
         });
